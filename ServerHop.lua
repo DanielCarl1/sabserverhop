@@ -14,6 +14,7 @@ local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 local PlaceId = game.PlaceId
+local JobId = game.JobId
 
 -------------------------------------------------
 -- CLEANUP OLD GUI
@@ -26,12 +27,11 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SynthZXSHub"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
 pcall(function() ScreenGui.Parent = CoreGui end)
 if not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
 -------------------------------------------------
--- PING BAR & WATERMARK (Top Right)
+-- PING BAR & WATERMARK
 -------------------------------------------------
 local PingBar = Instance.new("Frame")
 PingBar.Name = "PingBar"
@@ -64,7 +64,7 @@ Watermark.Font = Enum.Font.GothamBold
 Watermark.Parent = ScreenGui
 
 -------------------------------------------------
--- MAIN GUI FRAME (MINIMAL)
+-- MAIN GUI FRAME
 -------------------------------------------------
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 240, 0, 160)
@@ -104,7 +104,6 @@ CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.Parent = TitleBar
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
-
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 local StatusLabel = Instance.new("TextLabel")
@@ -118,9 +117,6 @@ StatusLabel.TextTruncate = Enum.TextTruncate.AtEnd
 StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.Parent = MainFrame
 
--------------------------------------------------
--- HOOKS
--------------------------------------------------
 local HopAscBtn = Instance.new("TextButton")
 HopAscBtn.Size = UDim2.new(1, -20, 0, 35)
 HopAscBtn.Position = UDim2.new(0, 10, 0, 45)
@@ -144,74 +140,78 @@ HopDescBtn.Parent = MainFrame
 Instance.new("UICorner", HopDescBtn).CornerRadius = UDim.new(0, 6)
 
 -------------------------------------------------
--- LOGIC
+-- HOPPER LOGIC (EXACTLY FROM VERSION 1)
 -------------------------------------------------
-local function GetServerData(sortOrder)
-    -- Using roproxy because standard roblox.com is heavily blocked in executors
-    local proxies = {
-        "https://games.roproxy.com/v1/games/",
-        "https://games.roblox.com/v1/games/"
-    }
+local isHopping = false
+
+local function GetServers(sortOrder)
+    local servers = {}
+    local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=" .. (sortOrder or "Asc") .. "&limit=100"
     
-    for _, proxy in ipairs(proxies) do
-        local url = proxy .. PlaceId .. "/servers/Public?sortOrder=" .. sortOrder .. "&limit=100"
-        local ok, result = pcall(function() return game:HttpGet(url) end)
-        
-        if ok and result and #result > 10 then
-            local decOk, decoded = pcall(function() return HttpService:JSONDecode(result) end)
-            if decOk and decoded.data then
-                return decoded
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet(url))
+    end)
+    
+    if success and result and result.data then
+        for _, server in ipairs(result.data) do
+            if server.id ~= JobId and server.playing < server.maxPlayers then
+                table.insert(servers, server)
             end
         end
     end
-    
-    return nil
+    return servers
 end
 
-local function FetchAndHop(sortOrder)
-    StatusLabel.Text = "Status: Fetching servers..."
-    
-    local res = GetServerData(sortOrder)
-
-    if res and res.data then
-        local targetServer = nil
-        
-        -- Find the first valid server that is not our current server and has room
-        for _, server in ipairs(res.data) do
-            if type(server) == "table" and server.id ~= game.JobId and server.playing and server.maxPlayers and server.playing < server.maxPlayers - 1 then
-                targetServer = server
-                break
-            end
-        end
-
-        if targetServer then
-            StatusLabel.Text = "Status: Joining (" .. targetServer.playing .. " plrs)..."
-            local tpOk, tpErr = pcall(function()
-                TeleportService:TeleportToPlaceInstance(PlaceId, targetServer.id, LocalPlayer)
-            end)
-            if not tpOk then
-                StatusLabel.Text = "TP Failed: " .. tostring(tpErr)
-            end
-        else
-            StatusLabel.Text = "Status: No open servers found!"
-        end
-    else
-        StatusLabel.Text = "Status: API block/proxy down."
+local function TeleportToServer(serverId)
+    StatusLabel.Text = "🚀 Status: Teleporting..."
+    local success, err = pcall(function()
+        TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
+    end)
+    if not success then
+        StatusLabel.Text = "❌ Teleport failed!"
     end
 end
 
-HopAscBtn.MouseButton1Click:Connect(function() 
-    HopAscBtn.Text = "..."
-    FetchAndHop("Asc") 
+HopAscBtn.MouseButton1Click:Connect(function()
+    if isHopping then return end
+    isHopping = true
+    StatusLabel.Text = "🔍 Status: Finding smallest server..."
+    
+    local servers = GetServers("Asc")
+    
+    if #servers == 0 then
+        StatusLabel.Text = "❌ Status: No servers found"
+        isHopping = false
+        return
+    end
+    
+    table.sort(servers, function(a, b) return a.playing < b.playing end)
+    
+    StatusLabel.Text = "📉 Status: Hopping to smallest (" .. servers[1].playing .. " plrs)..."
     task.wait(1)
-    HopAscBtn.Text = "📉 Hop Smallest (Ascending)"
+    TeleportToServer(servers[1].id)
+    isHopping = false
 end)
 
-HopDescBtn.MouseButton1Click:Connect(function() 
-    HopDescBtn.Text = "..."
-    FetchAndHop("Desc") 
+HopDescBtn.MouseButton1Click:Connect(function()
+    if isHopping then return end
+    isHopping = true
+    StatusLabel.Text = "🔍 Status: Finding biggest server..."
+    
+    local servers = GetServers("Desc")
+    
+    if #servers == 0 then
+        StatusLabel.Text = "❌ Status: No servers found"
+        isHopping = false
+        return
+    end
+    
+    table.sort(servers, function(a, b) return a.playing > b.playing end)
+    
+    StatusLabel.Text = "📈 Status: Hopping to biggest (" .. servers[1].playing .. " plrs)..."
     task.wait(1)
-    HopDescBtn.Text = "📈 Hop Biggest (Descending)"
+    TeleportToServer(servers[1].id)
+    isHopping = false
 end)
 
 -------------------------------------------------
