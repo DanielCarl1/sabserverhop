@@ -1,8 +1,9 @@
 --[[
     ╔══════════════════════════════════════════════════════════════╗
     ║                   SynthZXSHub                                ║
-    ║          Server Hop + Auto Scanner for Steal a Brainrot      ║
-    ║                     volt.bz executor                         ║
+    ║        Brainrot Scanner + Auto Joiner                        ║
+    ║              Steal a Brainrot                                ║
+    ║                  volt.bz                                     ║
     ╚══════════════════════════════════════════════════════════════╝
 ]]
 
@@ -12,6 +13,7 @@ local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
+local Stats = game:GetService("Stats")
 local Workspace = game:GetService("Workspace")
 
 -- Player
@@ -20,14 +22,11 @@ local PlaceId = game.PlaceId
 local JobId = game.JobId
 
 -------------------------------------------------
--- BRAINROT DATABASE (with values)
--- 0 = RARE / HIGH VALUE
--- 1000000000 = COMMON
--- 500000000 = MID-TIER
+-- BRAINROT DATABASE
+-- value 0 = RARE    |   value 1B = COMMON
 -------------------------------------------------
 
 local BRAINROT_DB = {
-    -- RARE (Value = 0) -- HIGH PRIORITY
     ["eviledon"] = 0,
     ["swag-soda"] = 0,
     ["la-secret-combinasion"] = 0,
@@ -106,11 +105,7 @@ local BRAINROT_DB = {
     ["bunny-and-eggy"] = 0,
     ["cash-or-card"] = 0,
     ["arcadragon"] = 0,
-
-    -- MID-TIER (Value = 500M)
     ["ventoliero-pavonero"] = 500000000,
-
-    -- COMMON (Value = 1B)
     ["67"] = 1000000000,
     ["esok-sekolah"] = 1000000000,
     ["la-grande-combinasion"] = 1000000000,
@@ -165,23 +160,24 @@ local BRAINROT_DB = {
     ["churrito-bunnito"] = 1000000000,
 }
 
--- Config
+-------------------------------------------------
+-- CONFIG
+-------------------------------------------------
+
 local CONFIG = {
-    ScanInterval = 1.5,
-    HopDelay = 3,
-    MaxServersToFetch = 100,
+    MaxServers = 100,
+    ScanDelay = 1.5,
+    HopDelay = 2,
     SkipDuels = true,
-    MinThreshold = 500000000,  -- Only alert for items BELOW this value (rare items)
-    ScanMode = "rare",        -- "rare" = only rare items, "all" = all items
-    AutoHopEnabled = false,
-    ScannerEnabled = false,
+    FilterMode = "AJ",  -- "100m", "50m", "10m", "AJ"
+    AutoJoinEnabled = false,
+    IsScanning = false,
 }
 
 -------------------------------------------------
--- UI CREATION
+-- CLEANUP OLD GUI
 -------------------------------------------------
 
--- Destroy old GUI if it exists
 if CoreGui:FindFirstChild("SynthZXSHub") then
     CoreGui:FindFirstChild("SynthZXSHub"):Destroy()
 end
@@ -190,360 +186,536 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SynthZXSHub"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-local success, err = pcall(function()
-    ScreenGui.Parent = CoreGui
-end)
-if not success then
+pcall(function() ScreenGui.Parent = CoreGui end)
+if not ScreenGui.Parent then
     ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 end
 
--- Main Frame
+-------------------------------------------------
+-- PING BAR (top-right, small)
+-------------------------------------------------
+
+local PingBar = Instance.new("Frame")
+PingBar.Name = "PingBar"
+PingBar.Size = UDim2.new(0, 150, 0, 22)
+PingBar.Position = UDim2.new(1, -160, 0, 6)
+PingBar.BackgroundColor3 = Color3.fromRGB(8, 12, 28)
+PingBar.BackgroundTransparency = 0.15
+PingBar.BorderSizePixel = 0
+PingBar.Parent = ScreenGui
+
+local PingBarCorner = Instance.new("UICorner")
+PingBarCorner.CornerRadius = UDim.new(0, 6)
+PingBarCorner.Parent = PingBar
+
+local PingBarStroke = Instance.new("UIStroke")
+PingBarStroke.Color = Color3.fromRGB(25, 65, 170)
+PingBarStroke.Thickness = 1
+PingBarStroke.Parent = PingBar
+
+local PingLabel = Instance.new("TextLabel")
+PingLabel.Name = "PingLabel"
+PingLabel.Size = UDim2.new(1, -8, 1, 0)
+PingLabel.Position = UDim2.new(0, 4, 0, 0)
+PingLabel.BackgroundTransparency = 1
+PingLabel.Text = "📶 0ms  |  0 FPS"
+PingLabel.TextColor3 = Color3.fromRGB(80, 160, 255)
+PingLabel.TextSize = 10
+PingLabel.Font = Enum.Font.GothamBold
+PingLabel.TextXAlignment = Enum.TextXAlignment.Center
+PingLabel.Parent = PingBar
+
+-------------------------------------------------
+-- WATERMARK (below ping bar)
+-------------------------------------------------
+
+local Watermark = Instance.new("TextLabel")
+Watermark.Name = "Watermark"
+Watermark.Size = UDim2.new(0, 150, 0, 20)
+Watermark.Position = UDim2.new(1, -160, 0, 30)
+Watermark.BackgroundTransparency = 1
+Watermark.Text = "⚡ synthzxshub"
+Watermark.TextColor3 = Color3.fromRGB(50, 110, 220)
+Watermark.TextSize = 10
+Watermark.Font = Enum.Font.GothamBold
+Watermark.TextXAlignment = Enum.TextXAlignment.Center
+Watermark.Parent = ScreenGui
+
+-------------------------------------------------
+-- MAIN FRAME
+-------------------------------------------------
+
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 330, 0, 480)
-MainFrame.Position = UDim2.new(0.5, -165, 0.5, -240)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 15, 35)
+MainFrame.Size = UDim2.new(0, 340, 0, 440)
+MainFrame.Position = UDim2.new(0.5, -170, 0.5, -220)
+MainFrame.BackgroundColor3 = Color3.fromRGB(8, 12, 28)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
 local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.CornerRadius = UDim.new(0, 10)
 MainCorner.Parent = MainFrame
 
 local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = Color3.fromRGB(30, 90, 210)
-MainStroke.Thickness = 2
+MainStroke.Color = Color3.fromRGB(25, 65, 170)
+MainStroke.Thickness = 1.5
 MainStroke.Parent = MainFrame
 
--- Gradient accent line at top
-local AccentLine = Instance.new("Frame")
-AccentLine.Name = "AccentLine"
-AccentLine.Size = UDim2.new(1, 0, 0, 3)
-AccentLine.Position = UDim2.new(0, 0, 0, 0)
-AccentLine.BorderSizePixel = 0
-AccentLine.BackgroundColor3 = Color3.fromRGB(50, 120, 255)
-AccentLine.Parent = MainFrame
+-- Top accent line
+local Accent = Instance.new("Frame")
+Accent.Size = UDim2.new(1, 0, 0, 2)
+Accent.BackgroundColor3 = Color3.fromRGB(40, 100, 255)
+Accent.BorderSizePixel = 0
+Accent.Parent = MainFrame
 
-local AccentGradient = Instance.new("UIGradient")
-AccentGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 80, 220)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(80, 160, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 80, 220)),
+local AccentGrad = Instance.new("UIGradient")
+AccentGrad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 60, 200)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(60, 140, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 60, 200)),
 }
-AccentGradient.Parent = AccentLine
+AccentGrad.Parent = Accent
 
--- Title Bar
-local TitleBar = Instance.new("Frame")
-TitleBar.Name = "TitleBar"
-TitleBar.Size = UDim2.new(1, 0, 0, 42)
-TitleBar.Position = UDim2.new(0, 0, 0, 3)
-TitleBar.BackgroundColor3 = Color3.fromRGB(15, 25, 60)
-TitleBar.BorderSizePixel = 0
-TitleBar.Parent = MainFrame
+-------------------------------------------------
+-- HEADER
+-------------------------------------------------
 
--- Title Text
-local TitleText = Instance.new("TextLabel")
-TitleText.Name = "TitleText"
-TitleText.Size = UDim2.new(1, -80, 1, 0)
-TitleText.Position = UDim2.new(0, 12, 0, 0)
-TitleText.BackgroundTransparency = 1
-TitleText.Text = "⚡ SynthZXSHub"
-TitleText.TextColor3 = Color3.fromRGB(90, 165, 255)
-TitleText.TextSize = 18
-TitleText.Font = Enum.Font.GothamBold
-TitleText.TextXAlignment = Enum.TextXAlignment.Left
-TitleText.Parent = TitleBar
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 44)
+Header.Position = UDim2.new(0, 0, 0, 2)
+Header.BackgroundColor3 = Color3.fromRGB(10, 16, 36)
+Header.BorderSizePixel = 0
+Header.Parent = MainFrame
 
--- Subtitle
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -80, 0, 24)
+Title.Position = UDim2.new(0, 14, 0, 4)
+Title.BackgroundTransparency = 1
+Title.Text = "SynthZXSHub"
+Title.TextColor3 = Color3.fromRGB(220, 230, 255)
+Title.TextSize = 16
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Header
+
 local SubTitle = Instance.new("TextLabel")
-SubTitle.Name = "SubTitle"
-SubTitle.Size = UDim2.new(0, 150, 0, 14)
-SubTitle.Position = UDim2.new(0, 12, 1, -16)
+SubTitle.Size = UDim2.new(1, -80, 0, 12)
+SubTitle.Position = UDim2.new(0, 14, 0, 28)
 SubTitle.BackgroundTransparency = 1
-SubTitle.Text = "Steal a Brainrot"
-SubTitle.TextColor3 = Color3.fromRGB(60, 100, 160)
-SubTitle.TextSize = 10
+SubTitle.Text = "steal a brainrot scanner"
+SubTitle.TextColor3 = Color3.fromRGB(50, 90, 160)
+SubTitle.TextSize = 9
 SubTitle.Font = Enum.Font.Gotham
 SubTitle.TextXAlignment = Enum.TextXAlignment.Left
-SubTitle.Parent = TitleBar
+SubTitle.Parent = Header
 
--- Close Button
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Name = "CloseBtn"
-CloseBtn.Size = UDim2.new(0, 28, 0, 28)
-CloseBtn.Position = UDim2.new(1, -36, 0, 7)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-CloseBtn.Text = "✕"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.TextSize = 13
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.BorderSizePixel = 0
-CloseBtn.Parent = TitleBar
-
-local CloseBtnCorner = Instance.new("UICorner")
-CloseBtnCorner.CornerRadius = UDim.new(0, 6)
-CloseBtnCorner.Parent = CloseBtn
-
--- Minimize Button
-local MinBtn = Instance.new("TextButton")
-MinBtn.Name = "MinBtn"
-MinBtn.Size = UDim2.new(0, 28, 0, 28)
-MinBtn.Position = UDim2.new(1, -68, 0, 7)
-MinBtn.BackgroundColor3 = Color3.fromRGB(30, 60, 150)
-MinBtn.Text = "—"
-MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinBtn.TextSize = 13
-MinBtn.Font = Enum.Font.GothamBold
-MinBtn.BorderSizePixel = 0
-MinBtn.Parent = TitleBar
-
-local MinBtnCorner = Instance.new("UICorner")
-MinBtnCorner.CornerRadius = UDim.new(0, 6)
-MinBtnCorner.Parent = MinBtn
-
--- Content Frame
-local ContentFrame = Instance.new("Frame")
-ContentFrame.Name = "ContentFrame"
-ContentFrame.Size = UDim2.new(1, -20, 1, -55)
-ContentFrame.Position = UDim2.new(0, 10, 0, 48)
-ContentFrame.BackgroundTransparency = 1
-ContentFrame.Parent = MainFrame
-
-local ContentLayout = Instance.new("UIListLayout")
-ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-ContentLayout.Padding = UDim.new(0, 6)
-ContentLayout.Parent = ContentFrame
-
--------------------------------------------------
--- UI HELPER FUNCTIONS
--------------------------------------------------
-
-local function CreateButton(name, text, layoutOrder, parent)
+-- Header buttons (settings icon, minimize, close)
+local function MakeHeaderBtn(text, posX, color)
     local btn = Instance.new("TextButton")
-    btn.Name = name
-    btn.Size = UDim2.new(1, 0, 0, 36)
-    btn.BackgroundColor3 = Color3.fromRGB(20, 45, 120)
+    btn.Size = UDim2.new(0, 24, 0, 24)
+    btn.Position = UDim2.new(1, posX, 0, 10)
+    btn.BackgroundColor3 = color
+    btn.BackgroundTransparency = 0.6
     btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(170, 205, 255)
-    btn.TextSize = 14
-    btn.Font = Enum.Font.GothamSemibold
+    btn.TextColor3 = Color3.fromRGB(200, 210, 240)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.GothamBold
     btn.BorderSizePixel = 0
-    btn.LayoutOrder = layoutOrder
-    btn.AutoButtonColor = true
-    btn.Parent = parent
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = btn
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(40, 85, 190)
-    stroke.Thickness = 1
-    stroke.Transparency = 0.4
-    stroke.Parent = btn
-
+    btn.Parent = Header
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 5)
+    c.Parent = btn
     return btn
 end
 
-local function CreateToggleButton(name, text, layoutOrder, parent)
-    local frame = Instance.new("Frame")
-    frame.Name = name .. "Frame"
-    frame.Size = UDim2.new(1, 0, 0, 36)
-    frame.BackgroundColor3 = Color3.fromRGB(20, 45, 120)
-    frame.BorderSizePixel = 0
-    frame.LayoutOrder = layoutOrder
-    frame.Parent = parent
+local CloseBtn = MakeHeaderBtn("✕", -34, Color3.fromRGB(160, 30, 30))
+local MinBtn = MakeHeaderBtn("—", -62, Color3.fromRGB(20, 40, 100))
+
+-------------------------------------------------
+-- FILTER TABS (like Moby: 100m+, 50m+, 10m+, AJ)
+-------------------------------------------------
+
+local TabBar = Instance.new("Frame")
+TabBar.Name = "TabBar"
+TabBar.Size = UDim2.new(1, -20, 0, 32)
+TabBar.Position = UDim2.new(0, 10, 0, 50)
+TabBar.BackgroundTransparency = 1
+TabBar.Parent = MainFrame
+
+local TabLayout = Instance.new("UIListLayout")
+TabLayout.FillDirection = Enum.FillDirection.Horizontal
+TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabLayout.Padding = UDim.new(0, 6)
+TabLayout.Parent = TabBar
+
+local tabButtons = {}
+
+local function CreateTab(name, label, order)
+    local btn = Instance.new("TextButton")
+    btn.Name = name
+    btn.Size = UDim2.new(0, 72, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(15, 22, 50)
+    btn.Text = "📋 " .. label
+    btn.TextColor3 = Color3.fromRGB(100, 140, 200)
+    btn.TextSize = 11
+    btn.Font = Enum.Font.GothamSemibold
+    btn.BorderSizePixel = 0
+    btn.LayoutOrder = order
+    btn.AutoButtonColor = false
+    btn.Parent = TabBar
 
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = frame
+    corner.CornerRadius = UDim.new(0, 7)
+    corner.Parent = btn
 
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(40, 85, 190)
+    stroke.Color = Color3.fromRGB(25, 55, 140)
     stroke.Thickness = 1
-    stroke.Transparency = 0.4
-    stroke.Parent = frame
+    stroke.Transparency = 0.5
+    stroke.Parent = btn
 
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -60, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Color3.fromRGB(170, 205, 255)
-    label.TextSize = 13
-    label.Font = Enum.Font.GothamSemibold
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-
-    local toggleBtn = Instance.new("TextButton")
-    toggleBtn.Name = name .. "Toggle"
-    toggleBtn.Size = UDim2.new(0, 42, 0, 22)
-    toggleBtn.Position = UDim2.new(1, -52, 0.5, -11)
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-    toggleBtn.Text = "OFF"
-    toggleBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
-    toggleBtn.TextSize = 10
-    toggleBtn.Font = Enum.Font.GothamBold
-    toggleBtn.BorderSizePixel = 0
-    toggleBtn.Parent = frame
-
-    local toggleCorner = Instance.new("UICorner")
-    toggleCorner.CornerRadius = UDim.new(0, 6)
-    toggleCorner.Parent = toggleBtn
-
-    return toggleBtn
+    tabButtons[name] = {Button = btn, Stroke = stroke}
+    return btn
 end
 
-local function CreateLabel(name, text, layoutOrder, parent)
-    local label = Instance.new("TextLabel")
-    label.Name = name
-    label.Size = UDim2.new(1, 0, 0, 18)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Color3.fromRGB(100, 140, 200)
-    label.TextSize = 11
-    label.Font = Enum.Font.Gotham
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.LayoutOrder = layoutOrder
-    label.Parent = parent
-    return label
+local tab100m = CreateTab("100m", "100m+", 1)
+local tab50m = CreateTab("50m", "50m+", 2)
+local tab10m = CreateTab("10m", "10m+", 3)
+local tabAJ = CreateTab("AJ", "AJ", 4)
+
+local function SetActiveTab(tabName)
+    CONFIG.FilterMode = tabName
+    for name, data in pairs(tabButtons) do
+        if name == tabName then
+            data.Button.BackgroundColor3 = Color3.fromRGB(30, 70, 200)
+            data.Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+            data.Stroke.Color = Color3.fromRGB(50, 110, 255)
+            data.Stroke.Transparency = 0
+        else
+            data.Button.BackgroundColor3 = Color3.fromRGB(15, 22, 50)
+            data.Button.TextColor3 = Color3.fromRGB(100, 140, 200)
+            data.Stroke.Color = Color3.fromRGB(25, 55, 140)
+            data.Stroke.Transparency = 0.5
+        end
+    end
 end
 
-local function CreateSeparator(layoutOrder, parent)
-    local sep = Instance.new("Frame")
-    sep.Name = "Separator"
-    sep.Size = UDim2.new(1, 0, 0, 1)
-    sep.BackgroundColor3 = Color3.fromRGB(30, 60, 130)
-    sep.BackgroundTransparency = 0.5
-    sep.BorderSizePixel = 0
-    sep.LayoutOrder = layoutOrder
-    sep.Parent = parent
-    return sep
+SetActiveTab("AJ")
+
+tab100m.MouseButton1Click:Connect(function() SetActiveTab("100m") end)
+tab50m.MouseButton1Click:Connect(function() SetActiveTab("50m") end)
+tab10m.MouseButton1Click:Connect(function() SetActiveTab("10m") end)
+tabAJ.MouseButton1Click:Connect(function() SetActiveTab("AJ") end)
+
+-------------------------------------------------
+-- RESULTS AREA (scrolling list of found brainrots)
+-------------------------------------------------
+
+local ResultsFrame = Instance.new("ScrollingFrame")
+ResultsFrame.Name = "ResultsFrame"
+ResultsFrame.Size = UDim2.new(1, -20, 0, 220)
+ResultsFrame.Position = UDim2.new(0, 10, 0, 88)
+ResultsFrame.BackgroundColor3 = Color3.fromRGB(6, 10, 22)
+ResultsFrame.BorderSizePixel = 0
+ResultsFrame.ScrollBarThickness = 3
+ResultsFrame.ScrollBarImageColor3 = Color3.fromRGB(40, 80, 200)
+ResultsFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ResultsFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ResultsFrame.Parent = MainFrame
+
+local ResultsCorner = Instance.new("UICorner")
+ResultsCorner.CornerRadius = UDim.new(0, 8)
+ResultsCorner.Parent = ResultsFrame
+
+local ResultsStroke = Instance.new("UIStroke")
+ResultsStroke.Color = Color3.fromRGB(20, 45, 110)
+ResultsStroke.Thickness = 1
+ResultsStroke.Parent = ResultsFrame
+
+local ResultsLayout = Instance.new("UIListLayout")
+ResultsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ResultsLayout.Padding = UDim.new(0, 2)
+ResultsLayout.Parent = ResultsFrame
+
+local ResultsPadding = Instance.new("UIPadding")
+ResultsPadding.PaddingTop = UDim.new(0, 4)
+ResultsPadding.PaddingBottom = UDim.new(0, 4)
+ResultsPadding.PaddingLeft = UDim.new(0, 4)
+ResultsPadding.PaddingRight = UDim.new(0, 4)
+ResultsPadding.Parent = ResultsFrame
+
+-- Empty state label
+local EmptyLabel = Instance.new("TextLabel")
+EmptyLabel.Name = "EmptyLabel"
+EmptyLabel.Size = UDim2.new(1, 0, 0, 60)
+EmptyLabel.BackgroundTransparency = 1
+EmptyLabel.Text = "No brainrots detected yet.\nStart scanning to find brainrots!"
+EmptyLabel.TextColor3 = Color3.fromRGB(50, 70, 120)
+EmptyLabel.TextSize = 11
+EmptyLabel.Font = Enum.Font.Gotham
+EmptyLabel.Parent = ResultsFrame
+
+-------------------------------------------------
+-- RESULT ROW BUILDER
+-------------------------------------------------
+
+local function FormatValue(val)
+    if val >= 1000000000 then
+        return string.format("$%.1fB", val / 1000000000)
+    elseif val >= 1000000 then
+        return string.format("$%.0fM", val / 1000000)
+    elseif val >= 1000 then
+        return string.format("$%.0fK", val / 1000)
+    elseif val == 0 then
+        return "RARE"
+    else
+        return "$" .. tostring(val)
+    end
+end
+
+local function PrettyName(id)
+    -- Convert "burguro-and-fryuro" to "Burguro And Fryuro"
+    local words = {}
+    for word in id:gmatch("[^%-]+") do
+        table.insert(words, word:sub(1,1):upper() .. word:sub(2))
+    end
+    return table.concat(words, " ")
+end
+
+local function CreateResultRow(brainrotId, value, serverId, serverPlayers, layoutOrder)
+    local row = Instance.new("Frame")
+    row.Name = "Row_" .. brainrotId
+    row.Size = UDim2.new(1, -4, 0, 42)
+    row.BackgroundColor3 = Color3.fromRGB(12, 18, 40)
+    row.BorderSizePixel = 0
+    row.LayoutOrder = layoutOrder
+    row.Parent = ResultsFrame
+
+    local rowCorner = Instance.new("UICorner")
+    rowCorner.CornerRadius = UDim.new(0, 6)
+    rowCorner.Parent = row
+
+    -- Rarity indicator dot
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.new(0, 6, 0, 6)
+    dot.Position = UDim2.new(0, 8, 0.5, -3)
+    dot.BorderSizePixel = 0
+    dot.Parent = row
+
+    local dotCorner = Instance.new("UICorner")
+    dotCorner.CornerRadius = UDim.new(1, 0)
+    dotCorner.Parent = dot
+
+    if value == 0 then
+        dot.BackgroundColor3 = Color3.fromRGB(255, 200, 50) -- Gold for rare
+    elseif value <= 500000000 then
+        dot.BackgroundColor3 = Color3.fromRGB(150, 80, 255) -- Purple for mid
+    else
+        dot.BackgroundColor3 = Color3.fromRGB(60, 160, 255) -- Blue for common
+    end
+
+    -- Brainrot name
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(0, 150, 0, 18)
+    nameLabel.Position = UDim2.new(0, 20, 0, 4)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = "🧠 " .. PrettyName(brainrotId)
+    nameLabel.TextColor3 = Color3.fromRGB(200, 215, 255)
+    nameLabel.TextSize = 11
+    nameLabel.Font = Enum.Font.GothamSemibold
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+    nameLabel.Parent = row
+
+    -- Value label
+    local valLabel = Instance.new("TextLabel")
+    valLabel.Size = UDim2.new(0, 150, 0, 14)
+    valLabel.Position = UDim2.new(0, 20, 0, 22)
+    valLabel.BackgroundTransparency = 1
+    valLabel.Text = FormatValue(value) .. "  •  " .. (serverPlayers or "?") .. " players"
+    valLabel.TextColor3 = value == 0 and Color3.fromRGB(255, 200, 50) or Color3.fromRGB(80, 130, 200)
+    valLabel.TextSize = 9
+    valLabel.Font = Enum.Font.Gotham
+    valLabel.TextXAlignment = Enum.TextXAlignment.Left
+    valLabel.Parent = row
+
+    -- JOIN button
+    local joinBtn = Instance.new("TextButton")
+    joinBtn.Name = "JoinBtn"
+    joinBtn.Size = UDim2.new(0, 48, 0, 26)
+    joinBtn.Position = UDim2.new(1, -110, 0.5, -13)
+    joinBtn.BackgroundColor3 = Color3.fromRGB(30, 90, 230)
+    joinBtn.Text = "JOIN"
+    joinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    joinBtn.TextSize = 11
+    joinBtn.Font = Enum.Font.GothamBold
+    joinBtn.BorderSizePixel = 0
+    joinBtn.Parent = row
+
+    local joinCorner = Instance.new("UICorner")
+    joinCorner.CornerRadius = UDim.new(0, 5)
+    joinCorner.Parent = joinBtn
+
+    -- HOP button (spam hop to that server)
+    local hopBtn = Instance.new("TextButton")
+    hopBtn.Name = "HopBtn"
+    hopBtn.Size = UDim2.new(0, 48, 0, 26)
+    hopBtn.Position = UDim2.new(1, -56, 0.5, -13)
+    hopBtn.BackgroundColor3 = Color3.fromRGB(30, 90, 230)
+    hopBtn.Text = "HOP"
+    hopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    hopBtn.TextSize = 11
+    hopBtn.Font = Enum.Font.GothamBold
+    hopBtn.BorderSizePixel = 0
+    hopBtn.Parent = row
+
+    local hopCorner = Instance.new("UICorner")
+    hopCorner.CornerRadius = UDim.new(0, 5)
+    hopCorner.Parent = hopBtn
+
+    -- Button actions
+    if serverId then
+        joinBtn.MouseButton1Click:Connect(function()
+            joinBtn.Text = "..."
+            pcall(function()
+                TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
+            end)
+        end)
+
+        hopBtn.MouseButton1Click:Connect(function()
+            hopBtn.Text = "..."
+            -- Keep trying to join
+            task.spawn(function()
+                for i = 1, 5 do
+                    pcall(function()
+                        TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
+                    end)
+                    task.wait(2)
+                end
+            end)
+        end)
+    else
+        -- If current server, disable join
+        joinBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 100)
+        joinBtn.Text = "HERE"
+        joinBtn.TextColor3 = Color3.fromRGB(100, 180, 255)
+
+        hopBtn.Visible = false
+    end
+
+    return row
 end
 
 -------------------------------------------------
--- BUILD UI ELEMENTS
+-- BOTTOM CONTROLS
 -------------------------------------------------
 
--- Status Label
-local StatusLabel = CreateLabel("StatusLabel", "⏳ Status: Idle", 1, ContentFrame)
-StatusLabel.TextColor3 = Color3.fromRGB(80, 190, 255)
-StatusLabel.TextSize = 12
+local BottomFrame = Instance.new("Frame")
+BottomFrame.Size = UDim2.new(1, -20, 0, 100)
+BottomFrame.Position = UDim2.new(0, 10, 0, 315)
+BottomFrame.BackgroundTransparency = 1
+BottomFrame.Parent = MainFrame
+
+local BottomLayout = Instance.new("UIListLayout")
+BottomLayout.SortOrder = Enum.SortOrder.LayoutOrder
+BottomLayout.Padding = UDim.new(0, 5)
+BottomLayout.Parent = BottomFrame
+
+-- Status
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Name = "StatusLabel"
+StatusLabel.Size = UDim2.new(1, 0, 0, 16)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "⏳ Idle  •  0 servers scanned"
+StatusLabel.TextColor3 = Color3.fromRGB(60, 110, 190)
+StatusLabel.TextSize = 10
 StatusLabel.Font = Enum.Font.GothamSemibold
-StatusLabel.Size = UDim2.new(1, 0, 0, 20)
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.LayoutOrder = 1
+StatusLabel.Parent = BottomFrame
 
--- Server Info
-local ServerInfoLabel = CreateLabel("ServerInfo", "🌐 Server: " .. string.sub(JobId, 1, 16) .. "...", 2, ContentFrame)
+-- Server Hop Button
+local HopButton = Instance.new("TextButton")
+HopButton.Name = "HopButton"
+HopButton.Size = UDim2.new(1, 0, 0, 34)
+HopButton.BackgroundColor3 = Color3.fromRGB(20, 50, 140)
+HopButton.Text = "🔄  Server Hop"
+HopButton.TextColor3 = Color3.fromRGB(160, 200, 255)
+HopButton.TextSize = 13
+HopButton.Font = Enum.Font.GothamSemibold
+HopButton.BorderSizePixel = 0
+HopButton.LayoutOrder = 2
+HopButton.Parent = BottomFrame
 
--- Player Count
-local PlayerCountLabel = CreateLabel("PlayerCount", "👥 Players: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers, 3, ContentFrame)
+local HopCorner = Instance.new("UICorner")
+HopCorner.CornerRadius = UDim.new(0, 7)
+HopCorner.Parent = HopButton
 
--- Scan Mode
-local ScanModeLabel = CreateLabel("ScanMode", "🎯 Mode: Rare Items Only (value < 500M)", 4, ContentFrame)
-ScanModeLabel.TextColor3 = Color3.fromRGB(255, 200, 80)
+local HopStroke = Instance.new("UIStroke")
+HopStroke.Color = Color3.fromRGB(35, 80, 200)
+HopStroke.Thickness = 1
+HopStroke.Parent = HopButton
 
-CreateSeparator(5, ContentFrame)
+-- Auto Joiner Button (toggle)
+local AutoJoinBtn = Instance.new("TextButton")
+AutoJoinBtn.Name = "AutoJoinBtn"
+AutoJoinBtn.Size = UDim2.new(1, 0, 0, 34)
+AutoJoinBtn.BackgroundColor3 = Color3.fromRGB(15, 22, 50)
+AutoJoinBtn.Text = "▷  Auto Joiner"
+AutoJoinBtn.TextColor3 = Color3.fromRGB(100, 140, 220)
+AutoJoinBtn.TextSize = 13
+AutoJoinBtn.Font = Enum.Font.GothamSemibold
+AutoJoinBtn.BorderSizePixel = 0
+AutoJoinBtn.LayoutOrder = 3
+AutoJoinBtn.Parent = BottomFrame
 
--- === BUTTONS ===
-local HopBtn = CreateButton("HopBtn", "🔄  Server Hop (Random)", 6, ContentFrame)
-local RejoinBtn = CreateButton("RejoinBtn", "🔁  Rejoin Server", 7, ContentFrame)
-local SmallHopBtn = CreateButton("SmallHopBtn", "📉  Hop to Smallest Server", 8, ContentFrame)
-local BigHopBtn = CreateButton("BigHopBtn", "📈  Hop to Biggest Server", 9, ContentFrame)
+local AJCorner = Instance.new("UICorner")
+AJCorner.CornerRadius = UDim.new(0, 7)
+AJCorner.Parent = AutoJoinBtn
 
-CreateSeparator(10, ContentFrame)
-
--- === TOGGLES ===
-local AutoHopToggle = CreateToggleButton("AutoHop", "⚡ Auto Server Hop", 11, ContentFrame)
-local ScannerToggle = CreateToggleButton("Scanner", "🔍 Brainrot Auto-Scanner", 12, ContentFrame)
-local ScanModeToggle = CreateToggleButton("ScanMode", "🎯 Scan ALL (not just rare)", 13, ContentFrame)
-
-CreateSeparator(14, ContentFrame)
-
--- Found Items
-local FoundLabel = CreateLabel("FoundLabel", "🎯 Found: None yet", 15, ContentFrame)
-FoundLabel.TextColor3 = Color3.fromRGB(80, 220, 130)
-FoundLabel.TextSize = 12
-FoundLabel.Font = Enum.Font.GothamSemibold
-FoundLabel.Size = UDim2.new(1, 0, 0, 20)
-FoundLabel.TextWrapped = true
-
--- Found Details
-local FoundDetailLabel = CreateLabel("FoundDetail", "", 16, ContentFrame)
-FoundDetailLabel.TextColor3 = Color3.fromRGB(120, 200, 160)
-FoundDetailLabel.TextWrapped = true
-FoundDetailLabel.Size = UDim2.new(1, 0, 0, 30)
-FoundDetailLabel.TextYAlignment = Enum.TextYAlignment.Top
-
--- Scan Count
-local ScanCountLabel = CreateLabel("ScanCount", "📊 Servers Scanned: 0", 17, ContentFrame)
-
--- Total brainrots in DB
-local DbCountLabel = CreateLabel("DbCount", "📋 Brainrots in DB: " .. (function() local c = 0 for _ in pairs(BRAINROT_DB) do c = c + 1 end return c end)(), 18, ContentFrame)
+local AJStroke = Instance.new("UIStroke")
+AJStroke.Color = Color3.fromRGB(30, 55, 130)
+AJStroke.Thickness = 1
+AJStroke.Parent = AutoJoinBtn
 
 -------------------------------------------------
--- WATERMARK (top-right corner)
--------------------------------------------------
-
-local Watermark = Instance.new("TextLabel")
-Watermark.Name = "Watermark"
-Watermark.Size = UDim2.new(0, 180, 0, 28)
-Watermark.Position = UDim2.new(1, -190, 0, 10)
-Watermark.BackgroundColor3 = Color3.fromRGB(10, 15, 35)
-Watermark.BackgroundTransparency = 0.2
-Watermark.Text = "⚡ synthzxshub"
-Watermark.TextColor3 = Color3.fromRGB(70, 140, 255)
-Watermark.TextSize = 14
-Watermark.Font = Enum.Font.GothamBold
-Watermark.TextXAlignment = Enum.TextXAlignment.Center
-Watermark.BorderSizePixel = 0
-Watermark.Parent = ScreenGui
-
-local WatermarkCorner = Instance.new("UICorner")
-WatermarkCorner.CornerRadius = UDim.new(0, 8)
-WatermarkCorner.Parent = Watermark
-
-local WatermarkStroke = Instance.new("UIStroke")
-WatermarkStroke.Color = Color3.fromRGB(30, 80, 200)
-WatermarkStroke.Thickness = 1
-WatermarkStroke.Parent = Watermark
-
--- FPS / Ping display next to watermark
-local PerfLabel = Instance.new("TextLabel")
-PerfLabel.Name = "PerfLabel"
-PerfLabel.Size = UDim2.new(0, 180, 0, 16)
-PerfLabel.Position = UDim2.new(1, -190, 0, 40)
-PerfLabel.BackgroundTransparency = 1
-PerfLabel.Text = ""
-PerfLabel.TextColor3 = Color3.fromRGB(60, 110, 180)
-PerfLabel.TextSize = 10
-PerfLabel.Font = Enum.Font.Gotham
-PerfLabel.TextXAlignment = Enum.TextXAlignment.Center
-PerfLabel.Parent = ScreenGui
-
--------------------------------------------------
--- CORE FUNCTIONS
+-- CORE LOGIC
 -------------------------------------------------
 
 local serversScanned = 0
 local isHopping = false
-local foundItems = {}
+local detectedBrainrots = {} -- array of {id, value, serverId, players}
 
--- Fetch servers from Roblox Games API
-local function GetServers(sortOrder)
+-- Normalize name for matching
+local function Normalize(name)
+    return name:lower():gsub("%s+", "-"):gsub("_", "-")
+end
+
+-- Get filter threshold based on active tab
+local function GetFilterThreshold()
+    if CONFIG.FilterMode == "100m" then return 100000000
+    elseif CONFIG.FilterMode == "50m" then return 50000000
+    elseif CONFIG.FilterMode == "10m" then return 10000000
+    else return math.huge -- AJ = show all
+    end
+end
+
+-- Fetch servers from API
+local function GetServers()
     local servers = {}
-    local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=" .. (sortOrder or "Asc") .. "&limit=" .. CONFIG.MaxServersToFetch
+    local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=" .. CONFIG.MaxServers
 
-    local success, result = pcall(function()
+    local ok, result = pcall(function()
         return HttpService:JSONDecode(game:HttpGet(url))
     end)
 
-    if success and result and result.data then
-        for _, server in ipairs(result.data) do
-            if server.id ~= JobId and server.playing < server.maxPlayers then
-                table.insert(servers, server)
+    if ok and result and result.data then
+        for _, s in ipairs(result.data) do
+            if s.id ~= JobId and s.playing and s.maxPlayers and s.playing < s.maxPlayers then
+                table.insert(servers, s)
             end
         end
     end
@@ -551,391 +723,309 @@ local function GetServers(sortOrder)
     return servers
 end
 
--- Teleport to a specific server
-local function TeleportToServer(serverId)
-    StatusLabel.Text = "🚀 Status: Teleporting..."
-
-    local success, err = pcall(function()
-        TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
-    end)
-
-    if not success then
-        StatusLabel.Text = "❌ Teleport failed: " .. tostring(err):sub(1, 40)
-        warn("[SynthZXSHub] Teleport failed: " .. tostring(err))
-        return false
-    end
-
-    return true
-end
-
--- Server Hop to random server
-local function ServerHop()
-    if isHopping then return end
-    isHopping = true
-    StatusLabel.Text = "🔍 Status: Fetching servers..."
-
-    local servers = GetServers("Asc")
-
-    if #servers == 0 then
-        StatusLabel.Text = "❌ Status: No servers available"
-        isHopping = false
-        return
-    end
-
-    local randomServer = servers[math.random(1, #servers)]
-    StatusLabel.Text = "🔄 Hopping... (" .. randomServer.playing .. " players)"
-
-    task.wait(1)
-    TeleportToServer(randomServer.id)
-    isHopping = false
-end
-
--- Rejoin current server
-local function RejoinServer()
-    if isHopping then return end
-    isHopping = true
-    StatusLabel.Text = "🔁 Status: Rejoining..."
-
-    task.wait(1)
-
-    local success, err = pcall(function()
-        TeleportService:TeleportToPlaceInstance(PlaceId, JobId, LocalPlayer)
-    end)
-
-    if not success then
-        pcall(function()
-            TeleportService:Teleport(PlaceId, LocalPlayer)
-        end)
-    end
-
-    isHopping = false
-end
-
--- Hop to smallest server
-local function HopToSmallest()
-    if isHopping then return end
-    isHopping = true
-    StatusLabel.Text = "🔍 Finding smallest server..."
-
-    local servers = GetServers("Asc")
-
-    if #servers == 0 then
-        StatusLabel.Text = "❌ No servers found"
-        isHopping = false
-        return
-    end
-
-    table.sort(servers, function(a, b) return a.playing < b.playing end)
-
-    StatusLabel.Text = "📉 Hopping (" .. servers[1].playing .. " players)..."
-    task.wait(1)
-    TeleportToServer(servers[1].id)
-    isHopping = false
-end
-
--- Hop to biggest server
-local function HopToBiggest()
-    if isHopping then return end
-    isHopping = true
-    StatusLabel.Text = "🔍 Finding biggest server..."
-
-    local servers = GetServers("Desc")
-
-    if #servers == 0 then
-        StatusLabel.Text = "❌ No servers found"
-        isHopping = false
-        return
-    end
-
-    table.sort(servers, function(a, b) return a.playing > b.playing end)
-
-    StatusLabel.Text = "📈 Hopping (" .. servers[1].playing .. " players)..."
-    task.wait(1)
-    TeleportToServer(servers[1].id)
-    isHopping = false
-end
-
--------------------------------------------------
--- BRAINROT SCANNER
--------------------------------------------------
-
--- Normalize name for matching (lowercase, remove spaces)
-local function NormalizeName(name)
-    return name:lower():gsub("%s+", "-"):gsub("_", "-")
-end
-
--- Scan workspace for brainrot items
+-- Scan current server workspace for brainrots
 local function ScanCurrentServer()
     local found = {}
+    local threshold = GetFilterThreshold()
 
-    local function CheckObject(obj)
-        local objName = NormalizeName(obj.Name)
-
-        for brainrotName, value in pairs(BRAINROT_DB) do
-            if objName:find(brainrotName, 1, true) or brainrotName:find(objName, 1, true) then
-                -- Filter by scan mode
-                if CONFIG.ScanMode == "all" or (CONFIG.ScanMode == "rare" and value < CONFIG.MinThreshold) then
-                    local rarity = "COMMON"
-                    if value == 0 then
-                        rarity = "⭐ RARE"
-                    elseif value < CONFIG.MinThreshold then
-                        rarity = "💎 MID"
-                    end
-
-                    table.insert(found, {
-                        Name = obj.Name,
-                        BrainrotId = brainrotName,
-                        Value = value,
-                        Rarity = rarity,
-                        ClassName = obj.ClassName,
-                        Position = obj:IsA("BasePart") and obj.Position or nil,
-                    })
+    local function CheckObj(obj)
+        local normalized = Normalize(obj.Name)
+        for brainrotId, value in pairs(BRAINROT_DB) do
+            -- Match if object name contains brainrot name or vice versa
+            if normalized:find(brainrotId, 1, true) or brainrotId:find(normalized, 1, true) then
+                if CONFIG.FilterMode == "AJ" or value <= threshold then
+                    found[brainrotId] = {
+                        id = brainrotId,
+                        value = value,
+                        serverId = nil, -- current server
+                        players = #Players:GetPlayers(),
+                        object = obj,
+                    }
                 end
                 break
             end
         end
     end
 
-    -- Scan all descendants of Workspace
+    -- Scan Workspace
     pcall(function()
         for _, obj in ipairs(Workspace:GetDescendants()) do
-            pcall(function() CheckObject(obj) end)
+            pcall(function() CheckObj(obj) end)
         end
     end)
 
-    -- Also scan ReplicatedStorage if accessible
+    -- Scan ReplicatedStorage
     pcall(function()
         local RS = game:GetService("ReplicatedStorage")
         for _, obj in ipairs(RS:GetDescendants()) do
-            pcall(function() CheckObject(obj) end)
+            pcall(function() CheckObj(obj) end)
         end
     end)
 
     return found
 end
 
+-- Clear result rows
+local function ClearResults()
+    for _, child in ipairs(ResultsFrame:GetChildren()) do
+        if child:IsA("Frame") and child.Name:find("Row_") then
+            child:Destroy()
+        end
+    end
+end
+
+-- Render detected brainrots to the results list
+local function RenderResults()
+    ClearResults()
+
+    if #detectedBrainrots == 0 then
+        EmptyLabel.Visible = true
+        return
+    end
+
+    EmptyLabel.Visible = false
+
+    -- Sort: rare first (value ascending)
+    table.sort(detectedBrainrots, function(a, b) return a.value < b.value end)
+
+    for i, data in ipairs(detectedBrainrots) do
+        CreateResultRow(data.id, data.value, data.serverId, data.players, i)
+    end
+end
+
+-- Teleport to random server
+local function ServerHop()
+    if isHopping then return end
+    isHopping = true
+    StatusLabel.Text = "🔍 Fetching servers..."
+
+    local servers = GetServers()
+
+    if #servers == 0 then
+        StatusLabel.Text = "❌ No servers available"
+        isHopping = false
+        return
+    end
+
+    local target = servers[math.random(1, #servers)]
+    StatusLabel.Text = "🔄 Hopping... (" .. target.playing .. " players)"
+
+    task.wait(0.5)
+    pcall(function()
+        TeleportService:TeleportToPlaceInstance(PlaceId, target.id, LocalPlayer)
+    end)
+
+    isHopping = false
+end
+
 -------------------------------------------------
--- AUTO HOP LOOP
+-- AUTO JOINER (scan current → if nothing, hop → repeat)
 -------------------------------------------------
 
-local autoHopThread = nil
+local autoJoinThread = nil
 
-local function StartAutoHop()
-    if autoHopThread then return end
+local function StartAutoJoiner()
+    if autoJoinThread then return end
 
-    CONFIG.AutoHopEnabled = true
-    AutoHopToggle.Text = "ON"
-    AutoHopToggle.BackgroundColor3 = Color3.fromRGB(25, 120, 60)
+    CONFIG.AutoJoinEnabled = true
+    AutoJoinBtn.Text = "■  Auto Joiner (ON)"
+    AutoJoinBtn.BackgroundColor3 = Color3.fromRGB(20, 90, 50)
+    AutoJoinBtn.TextColor3 = Color3.fromRGB(100, 255, 150)
+    AJStroke.Color = Color3.fromRGB(30, 140, 70)
 
-    autoHopThread = task.spawn(function()
-        while CONFIG.AutoHopEnabled do
-            for i = CONFIG.HopDelay, 1, -1 do
-                if not CONFIG.AutoHopEnabled then return end
-                StatusLabel.Text = "⚡ Auto-hop in " .. i .. "s..."
-                task.wait(1)
+    autoJoinThread = task.spawn(function()
+        while CONFIG.AutoJoinEnabled do
+            StatusLabel.Text = "🔍 Scanning server... (" .. serversScanned .. " scanned)"
+
+            -- Scan this server
+            local found = ScanCurrentServer()
+            serversScanned = serversScanned + 1
+
+            -- Convert found map to list
+            local foundList = {}
+            for _, data in pairs(found) do
+                table.insert(foundList, data)
             end
 
-            if not CONFIG.AutoHopEnabled then return end
-            ServerHop()
-        end
-    end)
-end
-
-local function StopAutoHop()
-    CONFIG.AutoHopEnabled = false
-    AutoHopToggle.Text = "OFF"
-    AutoHopToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-    autoHopThread = nil
-    StatusLabel.Text = "⏳ Status: Idle"
-end
-
--------------------------------------------------
--- SCANNER LOOP
--------------------------------------------------
-
-local scannerThread = nil
-
-local function StartScanner()
-    if scannerThread then return end
-
-    CONFIG.ScannerEnabled = true
-    ScannerToggle.Text = "ON"
-    ScannerToggle.BackgroundColor3 = Color3.fromRGB(25, 120, 60)
-
-    scannerThread = task.spawn(function()
-        while CONFIG.ScannerEnabled do
-            StatusLabel.Text = "🔍 Scanning this server..."
-
-            local items = ScanCurrentServer()
-            serversScanned = serversScanned + 1
-            ScanCountLabel.Text = "📊 Servers Scanned: " .. serversScanned
-
-            if #items > 0 then
-                -- FOUND brainrots!
-                foundItems = items
-
-                local names = {}
-                local rareCount = 0
-                for i, item in ipairs(items) do
-                    if item.Value == 0 then rareCount = rareCount + 1 end
-                    if i <= 4 then
-                        table.insert(names, item.Rarity .. " " .. item.BrainrotId)
+            if #foundList > 0 then
+                -- Add to detected list (avoid duplicates)
+                for _, newItem in ipairs(foundList) do
+                    local exists = false
+                    for _, existing in ipairs(detectedBrainrots) do
+                        if existing.id == newItem.id then
+                            exists = true
+                            break
+                        end
+                    end
+                    if not exists then
+                        table.insert(detectedBrainrots, newItem)
                     end
                 end
 
-                if #items > 4 then
-                    table.insert(names, "+" .. (#items - 4) .. " more")
+                RenderResults()
+
+                local rareCount = 0
+                for _, item in ipairs(foundList) do
+                    if item.value == 0 then rareCount = rareCount + 1 end
                 end
 
-                FoundLabel.Text = "🎯 FOUND " .. #items .. " brainrot(s)! (" .. rareCount .. " rare)"
-                FoundLabel.TextColor3 = rareCount > 0 and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(50, 255, 100)
-                FoundDetailLabel.Text = table.concat(names, " | ")
+                StatusLabel.Text = "✅ FOUND " .. #foundList .. " brainrot(s)! (" .. rareCount .. " rare) • " .. serversScanned .. " scanned"
+                StatusLabel.TextColor3 = Color3.fromRGB(80, 255, 130)
 
-                StatusLabel.Text = "✅ Brainrot FOUND! Staying here."
-                StatusLabel.TextColor3 = Color3.fromRGB(50, 255, 100)
-
-                -- Stop auto-hop
-                if CONFIG.AutoHopEnabled then
-                    StopAutoHop()
-                end
-
-                -- Send notification
+                -- Notify
                 pcall(function()
                     game:GetService("StarterGui"):SetCore("SendNotification", {
                         Title = "⚡ SynthZXSHub",
-                        Text = #items .. " brainrot(s) found! " .. rareCount .. " rare!",
-                        Duration = 15,
+                        Text = #foundList .. " brainrot(s) found! " .. rareCount .. " rare!",
+                        Duration = 10,
                     })
                 end)
 
-                -- Keep scanning but stay in server
-                task.wait(CONFIG.ScanInterval * 3)
+                -- Stay in server, keep scanning periodically
+                task.wait(5)
+
             else
-                FoundLabel.Text = "🎯 Found: Nothing in this server"
-                FoundLabel.TextColor3 = Color3.fromRGB(255, 120, 80)
-                FoundDetailLabel.Text = ""
-                StatusLabel.Text = "🔍 No brainrots, hopping next..."
-                StatusLabel.TextColor3 = Color3.fromRGB(80, 190, 255)
+                -- Nothing found — hop to next
+                StatusLabel.Text = "❌ Nothing found • Hopping... (" .. serversScanned .. " scanned)"
+                StatusLabel.TextColor3 = Color3.fromRGB(60, 110, 190)
 
-                task.wait(2)
+                task.wait(CONFIG.HopDelay)
 
-                if CONFIG.ScannerEnabled then
+                if CONFIG.AutoJoinEnabled then
                     ServerHop()
-                    task.wait(6)
+                    -- Wait for teleport (script re-executes on new server)
+                    task.wait(8)
                 end
             end
 
-            task.wait(CONFIG.ScanInterval)
+            task.wait(CONFIG.ScanDelay)
         end
     end)
 end
 
-local function StopScanner()
-    CONFIG.ScannerEnabled = false
-    ScannerToggle.Text = "OFF"
-    ScannerToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-    scannerThread = nil
-    StatusLabel.Text = "⏳ Status: Idle"
-    StatusLabel.TextColor3 = Color3.fromRGB(80, 190, 255)
+local function StopAutoJoiner()
+    CONFIG.AutoJoinEnabled = false
+    AutoJoinBtn.Text = "▷  Auto Joiner"
+    AutoJoinBtn.BackgroundColor3 = Color3.fromRGB(15, 22, 50)
+    AutoJoinBtn.TextColor3 = Color3.fromRGB(100, 140, 220)
+    AJStroke.Color = Color3.fromRGB(30, 55, 130)
+    autoJoinThread = nil
+    StatusLabel.Text = "⏳ Idle  •  " .. serversScanned .. " servers scanned"
+    StatusLabel.TextColor3 = Color3.fromRGB(60, 110, 190)
 end
 
 -------------------------------------------------
 -- BUTTON CONNECTIONS
 -------------------------------------------------
 
-HopBtn.MouseButton1Click:Connect(ServerHop)
-RejoinBtn.MouseButton1Click:Connect(RejoinServer)
-SmallHopBtn.MouseButton1Click:Connect(HopToSmallest)
-BigHopBtn.MouseButton1Click:Connect(HopToBiggest)
-
-AutoHopToggle.MouseButton1Click:Connect(function()
-    if CONFIG.AutoHopEnabled then StopAutoHop() else StartAutoHop() end
+HopButton.MouseButton1Click:Connect(function()
+    ServerHop()
 end)
 
-ScannerToggle.MouseButton1Click:Connect(function()
-    if CONFIG.ScannerEnabled then StopScanner() else StartScanner() end
-end)
-
-ScanModeToggle.MouseButton1Click:Connect(function()
-    if CONFIG.ScanMode == "rare" then
-        CONFIG.ScanMode = "all"
-        ScanModeToggle.Text = "ON"
-        ScanModeToggle.BackgroundColor3 = Color3.fromRGB(25, 120, 60)
-        ScanModeLabel.Text = "🎯 Mode: ALL Items (rare + common)"
+AutoJoinBtn.MouseButton1Click:Connect(function()
+    if CONFIG.AutoJoinEnabled then
+        StopAutoJoiner()
     else
-        CONFIG.ScanMode = "rare"
-        ScanModeToggle.Text = "OFF"
-        ScanModeToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-        ScanModeLabel.Text = "🎯 Mode: Rare Items Only (value < 500M)"
+        StartAutoJoiner()
     end
 end)
 
--- Close
 CloseBtn.MouseButton1Click:Connect(function()
-    StopAutoHop()
-    StopScanner()
+    StopAutoJoiner()
     ScreenGui:Destroy()
 end)
 
--- Minimize
 local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
-    ContentFrame.Visible = not minimized
-    MainFrame.Size = minimized and UDim2.new(0, 330, 0, 48) or UDim2.new(0, 330, 0, 480)
+    ResultsFrame.Visible = not minimized
+    BottomFrame.Visible = not minimized
+    TabBar.Visible = not minimized
+    MainFrame.Size = minimized and UDim2.new(0, 340, 0, 50) or UDim2.new(0, 340, 0, 440)
     MinBtn.Text = minimized and "+" or "—"
 end)
 
 -- Hover effects
-local function AddHover(button)
-    local orig = button.BackgroundColor3
-    button.MouseEnter:Connect(function()
-        button.BackgroundColor3 = Color3.fromRGB(
-            math.min(orig.R * 255 + 25, 255),
-            math.min(orig.G * 255 + 25, 255),
-            math.min(orig.B * 255 + 25, 255)
+local function AddHover(btn)
+    local orig = btn.BackgroundColor3
+    btn.MouseEnter:Connect(function()
+        btn.BackgroundColor3 = Color3.fromRGB(
+            math.min(orig.R * 255 + 20, 255),
+            math.min(orig.G * 255 + 20, 255),
+            math.min(orig.B * 255 + 20, 255)
         )
     end)
-    button.MouseLeave:Connect(function()
-        button.BackgroundColor3 = orig
+    btn.MouseLeave:Connect(function()
+        btn.BackgroundColor3 = orig
     end)
 end
 
-AddHover(HopBtn)
-AddHover(RejoinBtn)
-AddHover(SmallHopBtn)
-AddHover(BigHopBtn)
+AddHover(HopButton)
 AddHover(CloseBtn)
 
 -------------------------------------------------
--- LIVE UPDATES
+-- INITIAL SCAN ON LOAD
 -------------------------------------------------
 
 task.spawn(function()
-    while ScreenGui.Parent do
-        PlayerCountLabel.Text = "👥 Players: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers
+    task.wait(1)
+    StatusLabel.Text = "🔍 Initial scan..."
 
-        -- FPS counter
-        local fps = math.floor(1 / RunService.RenderStepped:Wait())
-        PerfLabel.Text = "FPS: " .. fps
+    local found = ScanCurrentServer()
+    serversScanned = 1
 
-        task.wait(1)
+    local foundList = {}
+    for _, data in pairs(found) do
+        table.insert(foundList, data)
+    end
+
+    if #foundList > 0 then
+        detectedBrainrots = foundList
+        RenderResults()
+        StatusLabel.Text = "✅ Found " .. #foundList .. " brainrot(s) in current server!"
+        StatusLabel.TextColor3 = Color3.fromRGB(80, 255, 130)
+    else
+        StatusLabel.Text = "⏳ No brainrots here • " .. serversScanned .. " scanned"
     end
 end)
 
 -------------------------------------------------
--- INIT
+-- PING + FPS UPDATER
 -------------------------------------------------
 
-print("[SynthZXSHub] ✅ Loaded successfully!")
-print("[SynthZXSHub] Script by synthzxshub")
-print("[SynthZXSHub] Server: " .. JobId)
+task.spawn(function()
+    while ScreenGui.Parent do
+        local ping = 0
+        pcall(function()
+            ping = math.floor(LocalPlayer:GetNetworkPing() * 1000)
+        end)
+
+        local fps = 0
+        pcall(function()
+            fps = math.floor(1 / RunService.RenderStepped:Wait())
+        end)
+
+        local pingColor = ping < 80 and "🟢" or (ping < 150 and "🟡" or "🔴")
+
+        PingLabel.Text = pingColor .. " " .. ping .. "ms  |  " .. fps .. " FPS"
+
+        task.wait(0.5)
+    end
+end)
+
+-------------------------------------------------
+-- INIT LOG
+-------------------------------------------------
+
+print("[SynthZXSHub] ✅ Loaded!")
+print("[SynthZXSHub] by synthzxshub")
+print("[SynthZXSHub] Server: " .. string.sub(JobId, 1, 20))
 print("[SynthZXSHub] Brainrots in DB: " .. (function() local c = 0 for _ in pairs(BRAINROT_DB) do c = c + 1 end return c end)())
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "⚡ SynthZXSHub",
-        Text = "Server Hop loaded! Ready to scan.",
+        Text = "Scanner loaded! Ready to find brainrots.",
         Duration = 5,
     })
 end)
