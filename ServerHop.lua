@@ -1,8 +1,7 @@
 --[[
     ╔══════════════════════════════════════════════════════════════╗
     ║                   SynthZXSHub                                ║
-    ║        Brainrot Scanner + Auto Joiner                        ║
-    ║              Steal a Brainrot                                ║
+    ║        Clean Server Hopper + Brainrot Scanner                ║
     ║                  volt.bz                                     ║
     ╚══════════════════════════════════════════════════════════════╝
 ]]
@@ -20,102 +19,39 @@ local LocalPlayer = Players.LocalPlayer
 local PlaceId = game.PlaceId
 local JobId = game.JobId
 
--------------------------------------------------
--- BRAINROT DATABASE
--------------------------------------------------
-local BRAINROT_DB = {
-    ["eviledon"] = 0, ["swag-soda"] = 0, ["la-secret-combinasion"] = 0, ["gobblino-uniciclino"] = 0,
-    ["cooki-and-milki"] = 0, ["strawberry-elephant"] = 0, ["burguro-and-fryuro"] = 0, ["dragon-cannelloni"] = 0,
-    ["garama-and-madundung"] = 0, ["orcaledon"] = 0, ["nuclearo-dinossauro"] = 0, ["la-taco-combinasion"] = 0,
-    ["la-spooky-grande"] = 0, ["w-or-l"] = 0, ["tralaledon"] = 0, ["tictac-sahur"] = 0,
-    ["lavadorito-spinito"] = 0, ["la-extinct-grande"] = 0, ["ketchuru-and-musturu"] = 0, ["ketupat-kepat"] = 0,
-    ["tacorita-bicicleta"] = 0, ["capitano-moby"] = 0, ["chicleteira-noelteira"] = 0, ["la-jolly-grande"] = 0,
-    ["spooky-and-pumpky"] = 0, ["fragrama-and-chocrama"] = 0, ["chillin-chili"] = 0, ["chipso-and-queso"] = 0,
-    ["chimnino"] = 0, ["los-candies"] = 0, ["reinito-sleighito"] = 0, ["la-ginger-sekolah"] = 0,
-    ["las-sis"] = 0, ["la-casa-boo"] = 0, ["dragon-gingerini"] = 0, ["festive-67"] = 0,
-    ["meowl"] = 0, ["skibidi-toilet"] = 0, ["jolly-jolly-sahur"] = 0, ["los-tacoritas"] = 0,
-    ["ginger-gerat"] = 0, ["swaggy-bros"] = 0, ["headless-horseman"] = 0, ["la-supreme-combinasion"] = 0,
-    ["money-money-reindeer"] = 0, ["los-jolly-combinasionas"] = 0, ["tuff-toucan"] = 0, ["fishino-clownino"] = 0,
-    ["donkeyturbo-express"] = 0, ["cerberus"] = 0, ["hydra-dragon-cannelloni"] = 0, ["ketupat-bros"] = 0,
-    ["popcuru-and-fizzuru"] = 0, ["rosey-and-teddy"] = 0, ["la-romantic-grande"] = 0, ["los-amigos"] = 0,
-    ["sammyni-fattini"] = 0, ["la-food-combinasion"] = 0, ["signore-carapace"] = 0, ["celestial-pegasus"] = 0,
-    ["antonio"] = 0, ["tirilikalika-tirilikalako"] = 0, ["elefanto-frigo"] = 0, ["griffin"] = 0,
-    ["love-love-bear"] = 0, ["dug-dug-dug"] = 0, ["fortunu-and-cashuru"] = 0, ["foxini-lanternini"] = 0,
-    ["gold-gold-gold"] = 0, ["hydra-bunny"] = 0, ["la-lucky-grande"] = 0, ["la-easter-grande"] = 0,
-    ["hopilikalika-hopilikalako"] = 0, ["pancake-and-syrup"] = 0, ["boppin-bunny"] = 0, ["bunny-and-eggy"] = 0,
-    ["cash-or-card"] = 0, ["arcadragon"] = 0,
-    
-    ["ventoliero-pavonero"] = 500000000,
-    
-    ["67"] = 1000000000, ["esok-sekolah"] = 1000000000, ["la-grande-combinasion"] = 1000000000, ["los-puggies"] = 1000000000,
-    ["los-combinasionas"] = 1000000000, ["spaghetti-tualetti"] = 1000000000, ["los-mobilis"] = 1000000000, ["los-burritos"] = 1000000000,
-    ["los-bros"] = 1000000000, ["los-spaghettis"] = 1000000000, ["los-spooky-combinasionas"] = 1000000000, ["los-nooo-my-hotspotsitos"] = 1000000000,
-    ["mariachi-corazoni"] = 1000000000, ["los-67"] = 1000000000, ["los-primos"] = 1000000000, ["los-cucarachas"] = 1000000000,
-    ["to-to-to-sahur"] = 1000000000, ["horegini-boom"] = 1000000000, ["burrito-bandito"] = 1000000000, ["quesadilla-crocodila"] = 1000000000,
-    ["tung-tung-tung-sahur"] = 1000000000, ["pot-hotspot"] = 1000000000, ["los-jobcitos"] = 1000000000, ["graipuss-medussi"] = 1000000000,
-    ["la-cucaracha"] = 1000000000, ["pumpkini-spyderini"] = 1000000000, ["cuadramat-and-pakrahmatmamat"] = 1000000000, ["los-quesadillas"] = 1000000000,
-    ["guerriro-digitale"] = 1000000000, ["los-tipi-tacos"] = 1000000000, ["zombie-tralala"] = 1000000000, ["las-tralaleritas"] = 1000000000,
-    ["los-tralaleritos"] = 1000000000, ["chicleteira-bicicleteira"] = 1000000000, ["job-job-job-sahur"] = 1000000000, ["los-chicleteiras"] = 1000000000,
-    ["los-25"] = 1000000000, ["mieteteira-bicicleteira"] = 1000000000, ["tang-tang-keletang"] = 1000000000, ["money-money-puggy"] = 1000000000,
-    ["los-hotspotsitos"] = 1000000000, ["brunito-marsito"] = 1000000000, ["spinny-hammy"] = 1000000000, ["bacuru-and-egguru"] = 1000000000,
-    ["noo-my-heart"] = 1000000000, ["los-mi-gatitos"] = 1000000000, ["chicleteira-cupideira"] = 1000000000, ["rosetti-tualetti"] = 1000000000,
-    ["dj-panda"] = 1000000000, ["los-sekolahs"] = 1000000000, ["baskito"] = 1000000000, ["churrito-bunnito"] = 1000000000,
+-- Target list (All Known Brainrots)
+local TARGET_BRAINROTS = {
+    "67", "eviledon", "esok-sekolah", "la-grande-combinasion", "los-puggies", "los-combinasionas",
+    "spaghetti-tualetti", "los-mobilis", "los-burritos", "los-bros", "los-spaghettis",
+    "los-spooky-combinasionas", "los-nooo-my-hotspotsitos", "mariachi-corazoni", "los-67",
+    "los-primos", "los-cucarachas", "to-to-to-sahur", "horegini-boom", "burrito-bandito",
+    "quesadilla-crocodila", "tung-tung-tung-sahur", "pot-hotspot", "los-jobcitos", "graipuss-medussi",
+    "la-cucaracha", "pumpkini-spyderini", "cuadramat-and-pakrahmatmamat", "los-quesadillas",
+    "guerriro-digitale", "los-tipi-tacos", "zombie-tralala", "las-tralaleritas", "los-tralaleritos",
+    "chicleteira-bicicleteira", "job-job-job-sahur", "los-chicleteiras", "los-25",
+    "mieteteira-bicicleteira", "tang-tang-keletang", "money-money-puggy", "los-hotspotsitos",
+    "brunito-marsito", "bacuru-and-egguru", "noo-my-heart", "los-mi-gatitos", "chicleteira-cupideira",
+    "rosetti-tualetti", "dj-panda", "los-sekolahs", "baskito", "churrito-bunnito", "swag-soda",
+    "la-secret-combinasion", "gobblino-uniciclino", "cooki-and-milki", "strawberry-elephant",
+    "burguro-and-fryuro", "dragon-cannelloni", "garama-and-madundung", "orcaledon", "nuclearo-dinossauro",
+    "la-taco-combinasion", "la-spooky-grande", "w-or-l", "tralaledon", "tictac-sahur", "lavadorito-spinito",
+    "la-extinct-grande", "ketchuru-and-musturu", "ketupat-kepat", "tacorita-bicicleta", "capitano-moby",
+    "chicleteira-noelteira", "la-jolly-grande", "spooky-and-pumpky", "fragrama-and-chocrama",
+    "chillin-chili", "chipso-and-queso", "chimnino", "los-candies", "reinito-sleighito", "la-ginger-sekolah",
+    "las-sis", "la-casa-boo", "dragon-gingerini", "festive-67", "meowl", "skibidi-toilet", "jolly-jolly-sahur",
+    "los-tacoritas", "ginger-gerat", "swaggy-bros", "headless-horseman", "la-supreme-combinasion",
+    "money-money-reindeer", "los-jolly-combinasionas", "tuff-toucan", "fishino-clownino", "donkeyturbo-express",
+    "cerberus", "hydra-dragon-cannelloni", "ketupat-bros", "popcuru-and-fizzuru", "rosey-and-teddy",
+    "la-romantic-grande", "los-amigos", "sammyni-fattini", "la-food-combinasion", "signore-carapace",
+    "celestial-pegasus", "antonio", "tirilikalika-tirilikalako", "elefanto-frigo", "griffin", "love-love-bear",
+    "dug-dug-dug", "fortunu-and-cashuru", "foxini-lanternini", "gold-gold-gold", "hydra-bunny", "la-lucky-grande",
+    "la-easter-grande", "hopilikalika-hopilikalako", "pancake-and-syrup", "boppin-bunny", "bunny-and-eggy",
+    "cash-or-card", "arcadragon", "ventoliero-pavonero"
 }
-
--------------------------------------------------
--- CONFIG & PERSISTENT STATE SAVING
--------------------------------------------------
-
-local CONFIG = {
-    MaxServers = 100,
-    FilterMode = "AJ", -- Default
-    AutoJoinEnabled = false,
-}
-
--- Load State from executor memory or file
-local function LoadState()
-    if getgenv().SynthZxsAutoJoin ~= nil then
-        CONFIG.AutoJoinEnabled = getgenv().SynthZxsAutoJoin
-    end
-    if getgenv().SynthZxsFilterMode ~= nil then
-        CONFIG.FilterMode = getgenv().SynthZxsFilterMode
-    end
-
-    if readfile and isfile and isfile("SynthZXSHubState.json") then
-        pcall(function()
-            local decoded = HttpService:JSONDecode(readfile("SynthZXSHubState.json"))
-            if decoded then
-                if getgenv().SynthZxsAutoJoin == nil and decoded.AutoJoin ~= nil then
-                    CONFIG.AutoJoinEnabled = decoded.AutoJoin
-                end
-                if getgenv().SynthZxsFilterMode == nil and decoded.FilterMode ~= nil then
-                    CONFIG.FilterMode = decoded.FilterMode
-                end
-            end
-        end)
-    end
-end
-LoadState()
-
-local function SaveState()
-    getgenv().SynthZxsAutoJoin = CONFIG.AutoJoinEnabled
-    getgenv().SynthZxsFilterMode = CONFIG.FilterMode
-
-    if writefile then
-        pcall(function()
-            local data = HttpService:JSONEncode({
-                AutoJoin = CONFIG.AutoJoinEnabled,
-                FilterMode = CONFIG.FilterMode
-            })
-            writefile("SynthZXSHubState.json", data)
-        end)
-    end
-end
 
 -------------------------------------------------
 -- CLEANUP OLD GUI
 -------------------------------------------------
-
 if CoreGui:FindFirstChild("SynthZXSHub") then
     CoreGui:FindFirstChild("SynthZXSHub"):Destroy()
 end
@@ -128,547 +64,362 @@ pcall(function() ScreenGui.Parent = CoreGui end)
 if not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
 -------------------------------------------------
--- PING BAR (top-right, small)
+-- PING BAR & WATERMARK (Top Right)
 -------------------------------------------------
-
 local PingBar = Instance.new("Frame")
 PingBar.Name = "PingBar"
 PingBar.Size = UDim2.new(0, 150, 0, 22)
 PingBar.Position = UDim2.new(1, -160, 0, 6)
-PingBar.BackgroundColor3 = Color3.fromRGB(8, 12, 28)
-PingBar.BackgroundTransparency = 0.15
+PingBar.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
+PingBar.BackgroundTransparency = 0.2
 PingBar.BorderSizePixel = 0
 PingBar.Parent = ScreenGui
-
-local PingBarCorner = Instance.new("UICorner")
-PingBarCorner.CornerRadius = UDim.new(0, 6)
-PingBarCorner.Parent = PingBar
-
-local PingBarStroke = Instance.new("UIStroke")
-PingBarStroke.Color = Color3.fromRGB(25, 65, 170)
-PingBarStroke.Thickness = 1
-PingBarStroke.Parent = PingBar
+Instance.new("UICorner", PingBar).CornerRadius = UDim.new(0, 6)
+local pStroke = Instance.new("UIStroke", PingBar)
+pStroke.Color = Color3.fromRGB(40, 90, 200)
 
 local PingLabel = Instance.new("TextLabel")
-PingLabel.Name = "PingLabel"
-PingLabel.Size = UDim2.new(1, -8, 1, 0)
-PingLabel.Position = UDim2.new(0, 4, 0, 0)
+PingLabel.Size = UDim2.new(1, 0, 1, 0)
 PingLabel.BackgroundTransparency = 1
 PingLabel.Text = "📶 0ms  |  0 FPS"
-PingLabel.TextColor3 = Color3.fromRGB(80, 160, 255)
+PingLabel.TextColor3 = Color3.fromRGB(100, 180, 255)
 PingLabel.TextSize = 10
 PingLabel.Font = Enum.Font.GothamBold
-PingLabel.TextXAlignment = Enum.TextXAlignment.Center
 PingLabel.Parent = PingBar
 
 local Watermark = Instance.new("TextLabel")
-Watermark.Name = "Watermark"
 Watermark.Size = UDim2.new(0, 150, 0, 20)
 Watermark.Position = UDim2.new(1, -160, 0, 30)
 Watermark.BackgroundTransparency = 1
 Watermark.Text = "⚡ synthzxshub"
-Watermark.TextColor3 = Color3.fromRGB(50, 110, 220)
+Watermark.TextColor3 = Color3.fromRGB(70, 130, 240)
 Watermark.TextSize = 10
 Watermark.Font = Enum.Font.GothamBold
-Watermark.TextXAlignment = Enum.TextXAlignment.Center
 Watermark.Parent = ScreenGui
 
 -------------------------------------------------
--- MAIN FRAME
+-- MAIN GUI FRAME
 -------------------------------------------------
-
 local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 340, 0, 440)
-MainFrame.Position = UDim2.new(0.5, -170, 0.5, -220)
-MainFrame.BackgroundColor3 = Color3.fromRGB(8, 12, 28)
+MainFrame.Size = UDim2.new(0, 350, 0, 480)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -240)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 10)
-MainCorner.Parent = MainFrame
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.BackgroundColor3 = Color3.fromRGB(30, 45, 80)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 8)
 
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = Color3.fromRGB(25, 65, 170)
-MainStroke.Thickness = 1.5
-MainStroke.Parent = MainFrame
-
-local Accent = Instance.new("Frame")
-Accent.Size = UDim2.new(1, 0, 0, 2)
-Accent.BackgroundColor3 = Color3.fromRGB(40, 100, 255)
-Accent.BorderSizePixel = 0
-Accent.Parent = MainFrame
-
-local AccentGrad = Instance.new("UIGradient")
-AccentGrad.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 60, 200)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(60, 140, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 60, 200)),
-}
-AccentGrad.Parent = Accent
-
--- HEADER
-local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 44)
-Header.Position = UDim2.new(0, 0, 0, 2)
-Header.BackgroundColor3 = Color3.fromRGB(10, 16, 36)
-Header.BorderSizePixel = 0
-Header.Parent = MainFrame
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -80, 0, 24)
-Title.Position = UDim2.new(0, 14, 0, 4)
-Title.BackgroundTransparency = 1
-Title.Text = "SynthZXSHub"
-Title.TextColor3 = Color3.fromRGB(220, 230, 255)
-Title.TextSize = 16
-Title.Font = Enum.Font.GothamBold
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = Header
-
-local SubTitle = Instance.new("TextLabel")
-SubTitle.Size = UDim2.new(1, -80, 0, 12)
-SubTitle.Position = UDim2.new(0, 14, 0, 28)
-SubTitle.BackgroundTransparency = 1
-SubTitle.Text = "steal a brainrot - auto joiner"
-SubTitle.TextColor3 = Color3.fromRGB(50, 90, 160)
-SubTitle.TextSize = 9
-SubTitle.Font = Enum.Font.Gotham
-SubTitle.TextXAlignment = Enum.TextXAlignment.Left
-SubTitle.Parent = Header
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, -40, 1, 0)
+TitleLabel.Position = UDim2.new(0, 15, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "SynthZXSHub - Hopper & Scanner"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 14
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent = TitleBar
 
 local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 24, 0, 24)
-CloseBtn.Position = UDim2.new(1, -34, 0, 10)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(160, 30, 30)
-CloseBtn.BackgroundTransparency = 0.6
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.BackgroundTransparency = 0.5
 CloseBtn.Text = "✕"
-CloseBtn.TextColor3 = Color3.fromRGB(200, 210, 240)
-CloseBtn.TextSize = 12
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.BorderSizePixel = 0
-CloseBtn.Parent = Header
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 5)
+CloseBtn.Parent = TitleBar
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 
-local MinBtn = Instance.new("TextButton")
-MinBtn.Size = UDim2.new(0, 24, 0, 24)
-MinBtn.Position = UDim2.new(1, -62, 0, 10)
-MinBtn.BackgroundColor3 = Color3.fromRGB(20, 40, 100)
-MinBtn.BackgroundTransparency = 0.6
-MinBtn.Text = "—"
-MinBtn.TextColor3 = Color3.fromRGB(200, 210, 240)
-MinBtn.TextSize = 12
-MinBtn.Font = Enum.Font.GothamBold
-MinBtn.BorderSizePixel = 0
-MinBtn.Parent = Header
-Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 5)
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 -------------------------------------------------
--- FILTER TABS
+-- SERVER HOP CONTROLS
 -------------------------------------------------
+local HopFrame = Instance.new("Frame")
+HopFrame.Size = UDim2.new(1, -20, 0, 90)
+HopFrame.Position = UDim2.new(0, 10, 0, 50)
+HopFrame.BackgroundColor3 = Color3.fromRGB(25, 30, 45)
+HopFrame.BorderSizePixel = 0
+HopFrame.Parent = MainFrame
+Instance.new("UICorner", HopFrame).CornerRadius = UDim.new(0, 6)
 
-local TabBar = Instance.new("Frame")
-TabBar.Name = "TabBar"
-TabBar.Size = UDim2.new(1, -20, 0, 32)
-TabBar.Position = UDim2.new(0, 10, 0, 50)
-TabBar.BackgroundTransparency = 1
-TabBar.Parent = MainFrame
+local HopTitle = Instance.new("TextLabel")
+HopTitle.Size = UDim2.new(1, -10, 0, 20)
+HopTitle.Position = UDim2.new(0, 10, 0, 5)
+HopTitle.BackgroundTransparency = 1
+HopTitle.Text = "🌐 Server Hopper"
+HopTitle.TextColor3 = Color3.fromRGB(150, 180, 255)
+HopTitle.TextSize = 12
+HopTitle.Font = Enum.Font.GothamSemibold
+HopTitle.TextXAlignment = Enum.TextXAlignment.Left
+HopTitle.Parent = HopFrame
 
-local TabLayout = Instance.new("UIListLayout")
-TabLayout.FillDirection = Enum.FillDirection.Horizontal
-TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
-TabLayout.Padding = UDim.new(0, 6)
-TabLayout.Parent = TabBar
+local HopAscBtn = Instance.new("TextButton")
+HopAscBtn.Size = UDim2.new(0.5, -15, 0, 40)
+HopAscBtn.Position = UDim2.new(0, 10, 0, 35)
+HopAscBtn.BackgroundColor3 = Color3.fromRGB(30, 70, 150)
+HopAscBtn.Text = "📉 Smallest\n(Ascending)"
+HopAscBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+HopAscBtn.TextSize = 12
+HopAscBtn.Font = Enum.Font.GothamBold
+HopAscBtn.Parent = HopFrame
+Instance.new("UICorner", HopAscBtn).CornerRadius = UDim.new(0, 6)
 
-local tabButtons = {}
-
-local function CreateTab(name, label, order)
-    local btn = Instance.new("TextButton")
-    btn.Name = name
-    btn.Size = UDim2.new(0, 72, 0, 30)
-    btn.BackgroundColor3 = Color3.fromRGB(15, 22, 50)
-    btn.Text = "📋 " .. label
-    btn.TextColor3 = Color3.fromRGB(100, 140, 200)
-    btn.TextSize = 11
-    btn.Font = Enum.Font.GothamSemibold
-    btn.BorderSizePixel = 0
-    btn.LayoutOrder = order
-    btn.AutoButtonColor = false
-    btn.Parent = TabBar
-
-    local corner = Instance.new("UICorner", btn)
-    corner.CornerRadius = UDim.new(0, 7)
-    local stroke = Instance.new("UIStroke", btn)
-    stroke.Color = Color3.fromRGB(25, 55, 140)
-    stroke.Thickness = 1
-    stroke.Transparency = 0.5
-
-    tabButtons[name] = {Button = btn, Stroke = stroke}
-    return btn
-end
-
-local tab100m = CreateTab("100m", "100m+", 1)
-local tab50m = CreateTab("50m", "50m+", 2)
-local tab10m = CreateTab("10m", "10m+", 3)
-local tabAJ = CreateTab("AJ", "AJ", 4)
-
-local function SetActiveTab(tabName)
-    CONFIG.FilterMode = tabName
-    SaveState()
-    for name, data in pairs(tabButtons) do
-        if name == tabName then
-            data.Button.BackgroundColor3 = Color3.fromRGB(30, 70, 200)
-            data.Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-            data.Stroke.Color = Color3.fromRGB(50, 110, 255)
-            data.Stroke.Transparency = 0
-        else
-            data.Button.BackgroundColor3 = Color3.fromRGB(15, 22, 50)
-            data.Button.TextColor3 = Color3.fromRGB(100, 140, 200)
-            data.Stroke.Color = Color3.fromRGB(25, 55, 140)
-            data.Stroke.Transparency = 0.5
-        end
-    end
-end
-SetActiveTab(CONFIG.FilterMode)
-
-tab100m.MouseButton1Click:Connect(function() SetActiveTab("100m") end)
-tab50m.MouseButton1Click:Connect(function() SetActiveTab("50m") end)
-tab10m.MouseButton1Click:Connect(function() SetActiveTab("10m") end)
-tabAJ.MouseButton1Click:Connect(function() SetActiveTab("AJ") end)
+local HopDescBtn = Instance.new("TextButton")
+HopDescBtn.Size = UDim2.new(0.5, -15, 0, 40)
+HopDescBtn.Position = UDim2.new(0.5, 5, 0, 35)
+HopDescBtn.BackgroundColor3 = Color3.fromRGB(30, 70, 150)
+HopDescBtn.Text = "📈 Biggest\n(Descending)"
+HopDescBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+HopDescBtn.TextSize = 12
+HopDescBtn.Font = Enum.Font.GothamBold
+HopDescBtn.Parent = HopFrame
+Instance.new("UICorner", HopDescBtn).CornerRadius = UDim.new(0, 6)
 
 -------------------------------------------------
--- RESULTS AREA
+-- SCANNER CONTROLS
 -------------------------------------------------
+local ScanFrame = Instance.new("Frame")
+ScanFrame.Size = UDim2.new(1, -20, 1, -160)
+ScanFrame.Position = UDim2.new(0, 10, 0, 150)
+ScanFrame.BackgroundColor3 = Color3.fromRGB(25, 30, 45)
+ScanFrame.BorderSizePixel = 0
+ScanFrame.Parent = MainFrame
+Instance.new("UICorner", ScanFrame).CornerRadius = UDim.new(0, 6)
 
-local ResultsFrame = Instance.new("ScrollingFrame")
-ResultsFrame.Name = "ResultsFrame"
-ResultsFrame.Size = UDim2.new(1, -20, 0, 220)
-ResultsFrame.Position = UDim2.new(0, 10, 0, 88)
-ResultsFrame.BackgroundColor3 = Color3.fromRGB(6, 10, 22)
-ResultsFrame.BorderSizePixel = 0
-ResultsFrame.ScrollBarThickness = 3
-ResultsFrame.ScrollBarImageColor3 = Color3.fromRGB(40, 80, 200)
-ResultsFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-ResultsFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-ResultsFrame.Parent = MainFrame
-
-Instance.new("UICorner", ResultsFrame).CornerRadius = UDim.new(0, 8)
-local rStroke = Instance.new("UIStroke", ResultsFrame)
-rStroke.Color = Color3.fromRGB(20, 45, 110); rStroke.Thickness = 1
-local rLayout = Instance.new("UIListLayout", ResultsFrame)
-rLayout.SortOrder = Enum.SortOrder.LayoutOrder; rLayout.Padding = UDim.new(0, 2)
-local rPad = Instance.new("UIPadding", ResultsFrame)
-rPad.PaddingTop = UDim.new(0, 4); rPad.PaddingBottom = UDim.new(0, 4)
-rPad.PaddingLeft = UDim.new(0, 4); rPad.PaddingRight = UDim.new(0, 4)
-
-local EmptyLabel = Instance.new("TextLabel")
-EmptyLabel.Size = UDim2.new(1, 0, 0, 60)
-EmptyLabel.BackgroundTransparency = 1
-EmptyLabel.Text = "No brainrots detected yet.\nStart Auto Joiner to scan and hop!"
-EmptyLabel.TextColor3 = Color3.fromRGB(50, 70, 120)
-EmptyLabel.TextSize = 11
-EmptyLabel.Font = Enum.Font.Gotham
-EmptyLabel.Parent = ResultsFrame
-
--------------------------------------------------
--- BOTTOM CONTROLS
--------------------------------------------------
-
-local BottomFrame = Instance.new("Frame")
-BottomFrame.Size = UDim2.new(1, -20, 0, 100)
-BottomFrame.Position = UDim2.new(0, 10, 0, 315)
-BottomFrame.BackgroundTransparency = 1
-BottomFrame.Parent = MainFrame
-local bLay = Instance.new("UIListLayout", BottomFrame)
-bLay.SortOrder = Enum.SortOrder.LayoutOrder; bLay.Padding = UDim.new(0, 5)
+local ScanBtn = Instance.new("TextButton")
+ScanBtn.Size = UDim2.new(1, -20, 0, 35)
+ScanBtn.Position = UDim2.new(0, 10, 0, 10)
+ScanBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 60)
+ScanBtn.Text = "▶ Start Scanning"
+ScanBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ScanBtn.TextSize = 14
+ScanBtn.Font = Enum.Font.GothamBold
+ScanBtn.Parent = ScanFrame
+Instance.new("UICorner", ScanBtn).CornerRadius = UDim.new(0, 6)
 
 local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(1, 0, 0, 16)
+StatusLabel.Size = UDim2.new(1, -20, 0, 20)
+StatusLabel.Position = UDim2.new(0, 10, 0, 50)
 StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "⏳ Idle"
-StatusLabel.TextColor3 = Color3.fromRGB(60, 110, 190)
-StatusLabel.TextSize = 10
-StatusLabel.Font = Enum.Font.GothamSemibold
+StatusLabel.Text = "Status: Idle"
+StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+StatusLabel.TextSize = 12
+StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
-StatusLabel.LayoutOrder = 1
-StatusLabel.Parent = BottomFrame
+StatusLabel.Parent = ScanFrame
 
-local HopButton = Instance.new("TextButton")
-HopButton.Size = UDim2.new(1, 0, 0, 34)
-HopButton.BackgroundColor3 = Color3.fromRGB(20, 50, 140)
-HopButton.Text = "🔄  Manual Server Hop"
-HopButton.TextColor3 = Color3.fromRGB(160, 200, 255)
-HopButton.TextSize = 13
-HopButton.Font = Enum.Font.GothamSemibold
-HopButton.BorderSizePixel = 0
-HopButton.LayoutOrder = 2
-HopButton.Parent = BottomFrame
-Instance.new("UICorner", HopButton).CornerRadius = UDim.new(0, 7)
-local HopStroke = Instance.new("UIStroke", HopButton)
-HopStroke.Color = Color3.fromRGB(35, 80, 200); HopStroke.Thickness = 1
+local ResultsFrame = Instance.new("ScrollingFrame")
+ResultsFrame.Size = UDim2.new(1, -20, 1, -85)
+ResultsFrame.Position = UDim2.new(0, 10, 0, 75)
+ResultsFrame.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
+ResultsFrame.BorderSizePixel = 0
+ResultsFrame.ScrollBarThickness = 4
+ResultsFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ResultsFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ResultsFrame.Parent = ScanFrame
+Instance.new("UICorner", ResultsFrame).CornerRadius = UDim.new(0, 4)
 
-local AutoJoinBtn = Instance.new("TextButton")
-AutoJoinBtn.Size = UDim2.new(1, 0, 0, 34)
-AutoJoinBtn.BackgroundColor3 = Color3.fromRGB(15, 22, 50)
-AutoJoinBtn.Text = "▷  Auto Joiner"
-AutoJoinBtn.TextColor3 = Color3.fromRGB(100, 140, 220)
-AutoJoinBtn.TextSize = 13
-AutoJoinBtn.Font = Enum.Font.GothamSemibold
-AutoJoinBtn.BorderSizePixel = 0
-AutoJoinBtn.LayoutOrder = 3
-AutoJoinBtn.Parent = BottomFrame
-Instance.new("UICorner", AutoJoinBtn).CornerRadius = UDim.new(0, 7)
-local AJStroke = Instance.new("UIStroke", AutoJoinBtn)
-AJStroke.Color = Color3.fromRGB(30, 55, 130); AJStroke.Thickness = 1
+local ResultsLayout = Instance.new("UIListLayout")
+ResultsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ResultsLayout.Padding = UDim.new(0, 4)
+ResultsLayout.Parent = ResultsFrame
+
+local ResultsPadding = Instance.new("UIPadding")
+ResultsPadding.PaddingTop = UDim.new(0, 4)
+ResultsPadding.PaddingBottom = UDim.new(0, 4)
+ResultsPadding.PaddingLeft = UDim.new(0, 4)
+ResultsPadding.PaddingRight = UDim.new(0, 4)
+ResultsPadding.Parent = ResultsFrame
 
 -------------------------------------------------
--- CORE LOGIC
+-- SERVER HOP LOGIC
 -------------------------------------------------
-
-local detectedBrainrots = {}
-
-local function Normalize(name) return name:lower():gsub("%s+", "-"):gsub("_", "-") end
-local function PrettyName(id)
-    local words = {}
-    for word in id:gmatch("[^%-]+") do table.insert(words, word:sub(1,1):upper() .. word:sub(2)) end
-    return table.concat(words, " ")
-end
-local function FormatValue(val)
-    if val >= 1000000000 then return string.format("$%.1fB", val / 1000000000)
-    elseif val >= 1000000 then return string.format("$%.0fM", val / 1000000)
-    elseif val >= 1000 then return string.format("$%.0fK", val / 1000)
-    elseif val == 0 then return "RARE" else return "$" .. tostring(val) end
-end
-
-local function GetFilterThreshold()
-    if CONFIG.FilterMode == "100m" then return 100000000
-    elseif CONFIG.FilterMode == "50m" then return 50000000
-    elseif CONFIG.FilterMode == "10m" then return 10000000
-    else return math.huge end
-end
-
-local function GetServers()
+local function GetServers(sortOrder)
+    StatusLabel.Text = "Status: Fetching " .. sortOrder .. " servers..."
     local servers = {}
-    local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=" .. CONFIG.MaxServers
-    pcall(function()
-        local res = HttpService:JSONDecode(game:HttpGet(url))
+    local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=" .. sortOrder .. "&limit=100"
+    
+    local ok, res = pcall(function() return HttpService:JSONDecode(game:HttpGet(url)) end)
+    
+    if ok and res and res.data then
         for _, s in ipairs(res.data) do
-            if s.id ~= JobId and s.playing and s.playing < s.maxPlayers then table.insert(servers, s) end
+            if s.id ~= JobId and s.playing and s.playing < s.maxPlayers then
+                table.insert(servers, s)
+            end
         end
-    end)
+    end
     return servers
 end
 
-local function ScanCurrentServer()
-    local found = {}
-    local threshold = GetFilterThreshold()
-    local function CheckObj(obj)
-        local norm = Normalize(obj.Name)
-        for bId, val in pairs(BRAINROT_DB) do
-            if norm:find(bId, 1, true) or bId:find(norm, 1, true) then
-                if CONFIG.FilterMode == "AJ" or val <= threshold then
-                    found[bId] = {id=bId, value=val, players=#Players:GetPlayers()}
+HopAscBtn.MouseButton1Click:Connect(function()
+    local servers = GetServers("Asc")
+    if #servers > 0 then
+        StatusLabel.Text = "Status: Teleporting to Smallest (" .. servers[1].playing .. " plrs)"
+        TeleportService:TeleportToPlaceInstance(PlaceId, servers[1].id, LocalPlayer)
+    else
+        StatusLabel.Text = "Status: No servers found."
+    end
+end)
+
+HopDescBtn.MouseButton1Click:Connect(function()
+    local servers = GetServers("Desc")
+    if #servers > 0 then
+        StatusLabel.Text = "Status: Teleporting to Biggest (" .. servers[1].playing .. " plrs)"
+        TeleportService:TeleportToPlaceInstance(PlaceId, servers[1].id, LocalPlayer)
+    else
+        StatusLabel.Text = "Status: No servers found."
+    end
+end)
+
+-------------------------------------------------
+-- SCANNER LOGIC
+-------------------------------------------------
+local scanning = false
+local foundBrainrots = {}
+
+local function AddFoundBrainrot(name, position)
+    -- Avoid duplicate entries for exact same location to prevent lag
+    local posString = math.floor(position.X)..", "..math.floor(position.Y)..", "..math.floor(position.Z)
+    local uniqueKey = name .. "_" .. posString
+    
+    if foundBrainrots[uniqueKey] then return end
+    foundBrainrots[uniqueKey] = true
+    
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 40)
+    row.BackgroundColor3 = Color3.fromRGB(30, 40, 60)
+    row.BorderSizePixel = 0
+    row.Parent = ResultsFrame
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 4)
+    
+    local lblName = Instance.new("TextLabel")
+    lblName.Size = UDim2.new(1, -10, 0, 20)
+    lblName.Position = UDim2.new(0, 5, 0, 2)
+    lblName.BackgroundTransparency = 1
+    lblName.Text = "🧠 " .. name
+    lblName.TextColor3 = Color3.fromRGB(220, 255, 100)
+    lblName.TextSize = 12
+    lblName.Font = Enum.Font.GothamBold
+    lblName.TextXAlignment = Enum.TextXAlignment.Left
+    lblName.Parent = row
+    
+    local lblPos = Instance.new("TextLabel")
+    lblPos.Size = UDim2.new(1, -10, 0, 15)
+    lblPos.Position = UDim2.new(0, 5, 0, 22)
+    lblPos.BackgroundTransparency = 1
+    lblPos.Text = "Pos: " .. posString
+    lblPos.TextColor3 = Color3.fromRGB(150, 180, 220)
+    lblPos.TextSize = 10
+    lblPos.Font = Enum.Font.Gotham
+    lblPos.TextXAlignment = Enum.TextXAlignment.Left
+    lblPos.Parent = row
+    
+    -- Play sound
+    pcall(function()
+        game:GetService("SoundService"):PlayLocalSound(Instance.new("Sound"))
+    end)
+end
+
+local function ScanInternal()
+    local count = 0
+    
+    -- 1. Scan Workspace for Models/Parts
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj.Name and obj.Name ~= "" then
+            local objName = obj.Name:lower()
+            for _, target in pairs(TARGET_BRAINROTS) do
+                if objName:find(target:lower()) then
+                    local pos = (obj:IsA("Model") and (obj.PrimaryPart and obj.PrimaryPart.Position or Vector3.new(0,0,0))) 
+                                or (obj:IsA("BasePart") and obj.Position) or Vector3.new(0,0,0)
+                    AddFoundBrainrot(obj.Name, pos)
+                    count = count + 1
                 end
-                break
             end
         end
     end
-    pcall(function() for _, obj in ipairs(Workspace:GetDescendants()) do pcall(function() CheckObj(obj) end) end end)
-    pcall(function() for _, obj in ipairs(game:GetService("ReplicatedStorage"):GetDescendants()) do pcall(function() CheckObj(obj) end) end end)
-    return found
-end
-
-local function CreateResultRow(data, index)
-    local row = Instance.new("Frame")
-    row.Name = "Row_" .. data.id; row.Size = UDim2.new(1, -4, 0, 42)
-    row.BackgroundColor3 = Color3.fromRGB(12, 18, 40); row.BorderSizePixel = 0
-    row.LayoutOrder = index; row.Parent = ResultsFrame
-    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 6)
-
-    local dot = Instance.new("Frame", row)
-    dot.Size = UDim2.new(0, 6, 0, 6); dot.Position = UDim2.new(0, 8, 0.5, -3); dot.BorderSizePixel = 0
-    Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
-    dot.BackgroundColor3 = data.value == 0 and Color3.fromRGB(255,200,50) or (data.value<=500000000 and Color3.fromRGB(150,80,255) or Color3.fromRGB(60,160,255))
-
-    local nameLbl = Instance.new("TextLabel", row)
-    nameLbl.Size = UDim2.new(0, 180, 0, 18); nameLbl.Position = UDim2.new(0, 20, 0, 4)
-    nameLbl.BackgroundTransparency = 1; nameLbl.Text = "🧠 " .. PrettyName(data.id)
-    nameLbl.TextColor3 = Color3.fromRGB(200, 215, 255); nameLbl.TextSize = 11
-    nameLbl.Font = Enum.Font.GothamSemibold; nameLbl.TextXAlignment = Enum.TextXAlignment.Left
-
-    local valLbl = Instance.new("TextLabel", row)
-    valLbl.Size = UDim2.new(0, 180, 0, 14); valLbl.Position = UDim2.new(0, 20, 0, 22)
-    valLbl.BackgroundTransparency = 1; valLbl.Text = FormatValue(data.value) .. "  •  " .. data.players .. " players"
-    valLbl.TextColor3 = data.value == 0 and Color3.fromRGB(255, 200, 50) or Color3.fromRGB(80, 130, 200)
-    valLbl.TextSize = 9; valLbl.Font = Enum.Font.Gotham; valLbl.TextXAlignment = Enum.TextXAlignment.Left
-
-    local joinBtn = Instance.new("TextButton", row)
-    joinBtn.Size = UDim2.new(0, 60, 0, 26); joinBtn.Position = UDim2.new(1, -70, 0.5, -13)
-    joinBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 100); joinBtn.Text = "HERE"
-    joinBtn.TextColor3 = Color3.fromRGB(100, 180, 255); joinBtn.TextSize = 11
-    joinBtn.Font = Enum.Font.GothamBold; joinBtn.BorderSizePixel = 0
-    Instance.new("UICorner", joinBtn).CornerRadius = UDim.new(0, 5)
-end
-
-local function RenderResults()
-    for _, child in ipairs(ResultsFrame:GetChildren()) do
-        if child:IsA("Frame") and child.Name:find("Row_") then child:Destroy() end
-    end
-    if #detectedBrainrots == 0 then EmptyLabel.Visible = true; return end
-    EmptyLabel.Visible = false
-    table.sort(detectedBrainrots, function(a, b) return a.value < b.value end)
-    for i, data in ipairs(detectedBrainrots) do CreateResultRow(data, i) end
-end
-
--- Persist Script to Next Server
-local function ServerHop()
-    if isHopping then return end
-    isHopping = true
-    StatusLabel.Text = "🔍 Fetching servers to hop..."
-
-    local servers = GetServers()
-    if #servers == 0 then StatusLabel.Text = "❌ No servers available!"; isHopping = false; return end
-    local target = servers[math.random(1, #servers)]
     
-    StatusLabel.Text = "🔄 Teleporting to server... (" .. target.playing .. " plrs)"
-
-    -- Queue On Teleport (Preserves Auto Joiner across hops)
-    local qot = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
-    if qot then
-        local code = [[
-            getgenv().SynthZxsAutoJoin = ]] .. tostring(CONFIG.AutoJoinEnabled) .. [[;
-            getgenv().SynthZxsFilterMode = "]] .. tostring(CONFIG.FilterMode) .. [[";
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/DanielCarl1/sabserverhop/refs/heads/main/ServerHop.lua"))();
-        ]]
-        pcall(function() qot(code) end)
-    end
-
-    task.wait(0.5)
-    pcall(function() TeleportService:TeleportToPlaceInstance(PlaceId, target.id, LocalPlayer) end)
-    isHopping = false
-end
-
--------------------------------------------------
--- AUTO JOINER SYSTEM (Hops endlessly until brainrot found)
--------------------------------------------------
-local autoJoinThread = nil
-
-local function StopAutoJoiner()
-    CONFIG.AutoJoinEnabled = false
-    SaveState()
-    AutoJoinBtn.Text = "▷  Auto Joiner"
-    AutoJoinBtn.BackgroundColor3 = Color3.fromRGB(15, 22, 50)
-    AutoJoinBtn.TextColor3 = Color3.fromRGB(100, 140, 220)
-    AJStroke.Color = Color3.fromRGB(30, 55, 130)
-    autoJoinThread = nil
-    StatusLabel.Text = "⏳ Auto Joiner Stopped"
-    StatusLabel.TextColor3 = Color3.fromRGB(60, 110, 190)
-end
-
-local function StartAutoJoiner()
-    if autoJoinThread then return end
-    CONFIG.AutoJoinEnabled = true
-    SaveState()
-
-    AutoJoinBtn.Text = "■  Auto Joiner (ON)"
-    AutoJoinBtn.BackgroundColor3 = Color3.fromRGB(20, 90, 50)
-    AutoJoinBtn.TextColor3 = Color3.fromRGB(100, 255, 150)
-    AJStroke.Color = Color3.fromRGB(30, 140, 70)
-
-    autoJoinThread = task.spawn(function()
-        task.wait(2) -- Wait for game to stream parts
-        while CONFIG.AutoJoinEnabled do
-            StatusLabel.Text = "🔍 Scanning server for brainrots..."
-
-            local foundMap = ScanCurrentServer()
-            local foundList = {}
-            for _, d in pairs(foundMap) do table.insert(foundList, d) end
-
-            if #foundList > 0 then
-                -- Brainrot matches filter! STOP HOPPING.
-                detectedBrainrots = foundList
-                RenderResults()
-
-                StatusLabel.Text = "✅ FOUND " .. #foundList .. " brainrot(s)! Auto-Hop stopped."
-                StatusLabel.TextColor3 = Color3.fromRGB(80, 255, 130)
-
-                pcall(function()
-                    game:GetService("StarterGui"):SetCore("SendNotification", {
-                        Title = "⚡ SynthZXSHub",
-                        Text = "Brainrot matched filter! Staying in server.",
-                        Duration = 10,
-                    })
-                end)
-
-                StopAutoJoiner()
-                break -- Exit thread
-            else
-                -- Nothing found or nothing matching filter, HOP!
-                StatusLabel.Text = "❌ No matches found. Hopping to next server..."
-                StatusLabel.TextColor3 = Color3.fromRGB(255, 120, 80)
-                
-                task.wait(1)
-                if CONFIG.AutoJoinEnabled then
-                    ServerHop()
-                    task.wait(10) -- Wait for teleport to take effect, otherwise loops
+    -- 2. Scan Player Backpacks
+    for _, player in pairs(Players:GetPlayers()) do
+        if player.Character then
+            local backpack = player:FindFirstChild("Backpack")
+            if backpack then
+                for _, item in pairs(backpack:GetChildren()) do
+                    if item:IsA("Tool") and item.Name then
+                        for _, target in pairs(TARGET_BRAINROTS) do
+                            if item.Name:lower():find(target:lower()) then
+                                local pos = player.Character.PrimaryPart and player.Character.PrimaryPart.Position or Vector3.new(0,0,0)
+                                AddFoundBrainrot(item.Name .. " (" .. player.Name .. ")", pos)
+                                count = count + 1
+                            end
+                        end
+                    end
                 end
             end
+        end
+    end
+    
+    return count
+end
+
+local scanThread = nil
+local function StartScanning()
+    if scanning then return end
+    scanning = true
+    ScanBtn.Text = "⏹ Stop Scanning"
+    ScanBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+    
+    scanThread = task.spawn(function()
+        while scanning do
+            StatusLabel.Text = "Status: Scanning..."
+            local foundNow = ScanInternal()
+            
+            local totalFound = 0
+            for k,v in pairs(foundBrainrots) do totalFound = totalFound + 1 end
+            
+            StatusLabel.Text = "Status: Active | Total Found: " .. totalFound
+            task.wait(3)
         end
     end)
 end
 
--------------------------------------------------
--- CONTROLS
--------------------------------------------------
-HopButton.MouseButton1Click:Connect(ServerHop)
-
-AutoJoinBtn.MouseButton1Click:Connect(function()
-    if CONFIG.AutoJoinEnabled then StopAutoJoiner() else StartAutoJoiner() end
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    StopAutoJoiner()
-    ScreenGui:Destroy()
-end)
-
-local minimized = false
-MinBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    ResultsFrame.Visible = not minimized; BottomFrame.Visible = not minimized; TabBar.Visible = not minimized
-    MainFrame.Size = minimized and UDim2.new(0, 340, 0, 50) or UDim2.new(0, 340, 0, 440)
-    MinBtn.Text = minimized and "+" or "—"
-end)
-
-local function AddHover(btn)
-    local orig = btn.BackgroundColor3
-    btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(math.min(orig.R*255+20, 255), math.min(orig.G*255+20, 255), math.min(orig.B*255+20, 255)) end)
-    btn.MouseLeave:Connect(function() btn.BackgroundColor3 = orig end)
-end
-AddHover(HopButton); AddHover(CloseBtn)
-
--------------------------------------------------
--- STARTUP
--------------------------------------------------
-task.spawn(function()
-    task.wait(1)
-    local found = ScanCurrentServer()
-    for _, d in pairs(found) do table.insert(detectedBrainrots, d) end
-    if #detectedBrainrots > 0 then RenderResults() end
-
-    -- Resume auto join if we were hopping
-    if CONFIG.AutoJoinEnabled then
-        StartAutoJoiner()
+local function StopScanning()
+    scanning = false
+    ScanBtn.Text = "▶ Start Scanning"
+    ScanBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 60)
+    StatusLabel.Text = "Status: Idle"
+    if scanThread then
+        task.cancel(scanThread)
+        scanThread = nil
     end
+end
+
+ScanBtn.MouseButton1Click:Connect(function()
+    if scanning then StopScanning() else StartScanning() end
 end)
 
+-------------------------------------------------
+-- PING & FPS UPDATER
+-------------------------------------------------
 task.spawn(function()
     while ScreenGui.Parent do
         local ping = 0; pcall(function() ping = math.floor(LocalPlayer:GetNetworkPing() * 1000) end)
         local fps = 0; pcall(function() fps = math.floor(1 / RunService.RenderStepped:Wait()) end)
-        PingLabel.Text = (ping<80 and"🟢"or(ping<150 and"🟡"or"🔴")) .. " " .. ping .. "ms  |  " .. fps .. " FPS"
-        task.wait(0.5)
+        
+        local color = ping < 80 and "🟢" or (ping < 150 and "🟡" or "🔴")
+        PingLabel.Text = color .. " " .. ping .. "ms  |  " .. fps .. " FPS"
+        
+        task.wait(1)
     end
 end)
+
+print("[SynthZXSHub] Hopper & Scanner Loaded.")
