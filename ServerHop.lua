@@ -1,20 +1,18 @@
 --[[
     ╔══════════════════════════════════════════════════════════════╗
     ║                   SynthZXSHub                                ║
-    ║        Clean Server Hopper (No Scanner)                      ║
-    ║                  volt.bz                                     ║
+    ║             FPS Booster & Smoother                           ║
     ╚══════════════════════════════════════════════════════════════╝
 ]]
 
 local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local Terrain = Workspace:WaitForChild("Terrain")
 
 local LocalPlayer = Players.LocalPlayer
-local PlaceId = game.PlaceId
-local JobId = game.JobId
 
 -------------------------------------------------
 -- CLEANUP OLD GUI
@@ -57,161 +55,82 @@ local Watermark = Instance.new("TextLabel")
 Watermark.Size = UDim2.new(0, 150, 0, 20)
 Watermark.Position = UDim2.new(1, -160, 0, 30)
 Watermark.BackgroundTransparency = 1
-Watermark.Text = "⚡ synthzxshub"
+Watermark.Text = "⚡ synthzxshub (FPS Boost)"
 Watermark.TextColor3 = Color3.fromRGB(70, 130, 240)
 Watermark.TextSize = 10
 Watermark.Font = Enum.Font.GothamBold
 Watermark.Parent = ScreenGui
 
 -------------------------------------------------
--- MAIN GUI FRAME
+-- FPS BOOSTER / SMOOTHER LOGIC
 -------------------------------------------------
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 160)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -80)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+local function OptimizeGame()
+    -- 1. Optimize Lighting
+    Lighting.GlobalShadows = false
+    Lighting.FogEnd = 9e9
+    Lighting.ShadowSoftness = 0
 
-local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 35)
-TitleBar.BackgroundColor3 = Color3.fromRGB(30, 45, 80)
-TitleBar.BorderSizePixel = 0
-TitleBar.Parent = MainFrame
-Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 8)
-
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Size = UDim2.new(1, -40, 1, 0)
-TitleLabel.Position = UDim2.new(0, 15, 0, 0)
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "Server Hopper"
-TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLabel.TextSize = 14
-TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-TitleLabel.Parent = TitleBar
-
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 25, 0, 25)
-CloseBtn.Position = UDim2.new(1, -30, 0, 5)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-CloseBtn.BackgroundTransparency = 0.5
-CloseBtn.Text = "✕"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.Parent = TitleBar
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
-CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(1, 0, 0, 25)
-StatusLabel.Position = UDim2.new(0, 0, 1, -30)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "Status: Idle"
-StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-StatusLabel.TextSize = 11
-StatusLabel.TextTruncate = Enum.TextTruncate.AtEnd
-StatusLabel.Font = Enum.Font.Gotham
-StatusLabel.Parent = MainFrame
-
-local HopAscBtn = Instance.new("TextButton")
-HopAscBtn.Size = UDim2.new(1, -20, 0, 35)
-HopAscBtn.Position = UDim2.new(0, 10, 0, 45)
-HopAscBtn.BackgroundColor3 = Color3.fromRGB(30, 70, 150)
-HopAscBtn.Text = "📉 Hop Smallest (Ascending)"
-HopAscBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-HopAscBtn.TextSize = 12
-HopAscBtn.Font = Enum.Font.GothamBold
-HopAscBtn.Parent = MainFrame
-Instance.new("UICorner", HopAscBtn).CornerRadius = UDim.new(0, 6)
-
-local HopDescBtn = Instance.new("TextButton")
-HopDescBtn.Size = UDim2.new(1, -20, 0, 35)
-HopDescBtn.Position = UDim2.new(0, 10, 0, 85)
-HopDescBtn.BackgroundColor3 = Color3.fromRGB(150, 70, 30)
-HopDescBtn.Text = "📈 Hop Biggest (Descending)"
-HopDescBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-HopDescBtn.TextSize = 12
-HopDescBtn.Font = Enum.Font.GothamBold
-HopDescBtn.Parent = MainFrame
-Instance.new("UICorner", HopDescBtn).CornerRadius = UDim.new(0, 6)
-
--------------------------------------------------
--- HOPPER LOGIC (EXACTLY FROM VERSION 1)
--------------------------------------------------
-local isHopping = false
-
-local function GetServers(sortOrder)
-    local servers = {}
-    local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=" .. (sortOrder or "Asc") .. "&limit=100"
-    
-    local success, result = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet(url))
+    pcall(function()
+        Lighting.Technology = Enum.Technology.Compatibility
     end)
-    
-    if success and result and result.data then
-        for _, server in ipairs(result.data) do
-            if server.id ~= JobId and server.playing < server.maxPlayers then
-                table.insert(servers, server)
-            end
+
+    -- 2. Clean Lighting Effects
+    for _, obj in ipairs(Lighting:GetChildren()) do
+        if obj:IsA("BlurEffect") or obj:IsA("SunRaysEffect") or obj:IsA("ColorCorrectionEffect") or obj:IsA("BloomEffect") or obj:IsA("DepthOfFieldEffect") then
+            obj.Enabled = false
         end
     end
-    return servers
-end
 
-local function TeleportToServer(serverId)
-    StatusLabel.Text = "🚀 Status: Teleporting..."
-    local success, err = pcall(function()
-        TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
-    end)
-    if not success then
-        StatusLabel.Text = "❌ Teleport failed!"
+    -- 3. Optimize Terrain Waters & Decorations
+    Terrain.WaterWaveSize = 0
+    Terrain.WaterWaveSpeed = 0
+    Terrain.WaterReflectance = 0
+    Terrain.WaterTransparency = 0
+    pcall(function() Terrain.Decoration = false end)
+
+    -- 4. Strip Graphics from Parts (Smooth Plastic, No Shadows)
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            obj.Material = Enum.Material.SmoothPlastic
+            obj.Reflectance = 0
+            obj.CastShadow = false
+        elseif obj:IsA("Decal") or obj:IsA("Texture") then
+            obj.Transparency = 1 -- Hide textures safely
+        elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
+            obj.Lifetime = NumberRange.new(0)
+        elseif obj:IsA("Explosion") then
+            obj.BlastPressure = 1
+            obj.BlastRadius = 1
+        elseif obj:IsA("Fire") or obj:IsA("SpotLight") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+            obj.Enabled = false
+        end
     end
 end
 
-HopAscBtn.MouseButton1Click:Connect(function()
-    if isHopping then return end
-    isHopping = true
-    StatusLabel.Text = "🔍 Status: Finding smallest server..."
-    
-    local servers = GetServers("Asc")
-    
-    if #servers == 0 then
-        StatusLabel.Text = "❌ Status: No servers found"
-        isHopping = false
-        return
-    end
-    
-    table.sort(servers, function(a, b) return a.playing < b.playing end)
-    
-    StatusLabel.Text = "📉 Status: Hopping to smallest (" .. servers[1].playing .. " plrs)..."
-    task.wait(1)
-    TeleportToServer(servers[1].id)
-    isHopping = false
+-- Run optimization on script execution
+pcall(function()
+    OptimizeGame()
+    -- Notify User
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "⚡ SynthZXSHub",
+        Text = "FPS Graphics Booster applied successfully!",
+        Duration = 5,
+    })
 end)
 
-HopDescBtn.MouseButton1Click:Connect(function()
-    if isHopping then return end
-    isHopping = true
-    StatusLabel.Text = "🔍 Status: Finding biggest server..."
-    
-    local servers = GetServers("Desc")
-    
-    if #servers == 0 then
-        StatusLabel.Text = "❌ Status: No servers found"
-        isHopping = false
-        return
+-- Hook onto newly created objects to keep the game optimized and smooth
+Workspace.DescendantAdded:Connect(function(obj)
+    if obj:IsA("BasePart") then
+        obj.Material = Enum.Material.SmoothPlastic
+        obj.Reflectance = 0
+        obj.CastShadow = false
+    elseif obj:IsA("Decal") or obj:IsA("Texture") then
+        obj.Transparency = 1
+    elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
+        obj.Lifetime = NumberRange.new(0)
+    elseif obj:IsA("Fire") or obj:IsA("SpotLight") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+        obj.Enabled = false
     end
-    
-    table.sort(servers, function(a, b) return a.playing > b.playing end)
-    
-    StatusLabel.Text = "📈 Status: Hopping to biggest (" .. servers[1].playing .. " plrs)..."
-    task.wait(1)
-    TeleportToServer(servers[1].id)
-    isHopping = false
 end)
 
 -------------------------------------------------
