@@ -114,6 +114,7 @@ StatusLabel.BackgroundTransparency = 1
 StatusLabel.Text = "Status: Idle"
 StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
 StatusLabel.TextSize = 11
+StatusLabel.TextTruncate = Enum.TextTruncate.AtEnd
 StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.Parent = MainFrame
 
@@ -145,41 +146,57 @@ Instance.new("UICorner", HopDescBtn).CornerRadius = UDim.new(0, 6)
 -------------------------------------------------
 -- LOGIC
 -------------------------------------------------
+local function GetServerData(sortOrder)
+    -- Using roproxy because standard roblox.com is heavily blocked in executors
+    local proxies = {
+        "https://games.roproxy.com/v1/games/",
+        "https://games.roblox.com/v1/games/"
+    }
+    
+    for _, proxy in ipairs(proxies) do
+        local url = proxy .. PlaceId .. "/servers/Public?sortOrder=" .. sortOrder .. "&limit=100"
+        local ok, result = pcall(function() return game:HttpGet(url) end)
+        
+        if ok and result and #result > 10 then
+            local decOk, decoded = pcall(function() return HttpService:JSONDecode(result) end)
+            if decOk and decoded.data then
+                return decoded
+            end
+        end
+    end
+    
+    return nil
+end
+
 local function FetchAndHop(sortOrder)
     StatusLabel.Text = "Status: Fetching servers..."
-    local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=" .. sortOrder .. "&limit=100"
     
-    local ok, res = pcall(function()
-        -- Use standard game:HttpGet, volt.bz natively supports this
-        return HttpService:JSONDecode(game:HttpGet(url))
-    end)
-    
-    if not ok then
-        StatusLabel.Text = "Status: Failed to fetch API!"
-        return
-    end
+    local res = GetServerData(sortOrder)
 
     if res and res.data then
         local targetServer = nil
         
         -- Find the first valid server that is not our current server and has room
         for _, server in ipairs(res.data) do
-            if server.id ~= game.JobId and server.playing and server.maxPlayers and server.playing < server.maxPlayers then
+            if type(server) == "table" and server.id ~= game.JobId and server.playing and server.maxPlayers and server.playing < server.maxPlayers - 1 then
                 targetServer = server
                 break
             end
         end
 
         if targetServer then
-            StatusLabel.Text = "Status: Joining server (" .. targetServer.playing .. " plrs)..."
-            pcall(function()
+            StatusLabel.Text = "Status: Joining (" .. targetServer.playing .. " plrs)..."
+            local tpOk, tpErr = pcall(function()
                 TeleportService:TeleportToPlaceInstance(PlaceId, targetServer.id, LocalPlayer)
             end)
+            if not tpOk then
+                StatusLabel.Text = "TP Failed: " .. tostring(tpErr)
+            end
         else
             StatusLabel.Text = "Status: No open servers found!"
         end
     else
-        StatusLabel.Text = "Status: Bad API response."
+        StatusLabel.Text = "Status: API block/proxy down."
     end
 end
 
