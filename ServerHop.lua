@@ -130,7 +130,7 @@ local function triggerAutoExit()
     
     -- Very short wait just to flash the blue UI, then instantly kick
     task.wait(0.1)
-    LocalPlayer:Kick("PALDO KA NA NAMAN")
+    LocalPlayer:Kick("PALDO KA NA NAMAN SARDINAS")
 end
 
 -- Detect Leaderstats Increase (when you successfully steal/deposit it)
