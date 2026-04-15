@@ -10,9 +10,90 @@ local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
 local Terrain = Workspace:WaitForChild("Terrain")
 
+repeat task.wait() until game:IsLoaded()
+
+
 local LocalPlayer = Players.LocalPlayer
+
+-------------------------------------------------
+-- BRAINROT DATA
+-------------------------------------------------
+local BrainrotValues = {
+    ["67"] = 1000000000,
+    ["la-grande-combinasion"] = 1000000000,
+    ["los-puggies"] = 1000000000,
+    ["los-combinasionas"] = 1000000000,
+    ["spaghetti-tualetti"] = 1000000000,
+    ["los-mobilis"] = 1000000000,
+    ["los-burritos"] = 1000000000,
+    ["los-bros"] = 1000000000,
+    ["los-spaghettis"] = 1000000000,
+    ["los-spooky-combinasionas"] = 1000000000,
+    ["los-nooo-my-hotspotsitos"] = 1000000000,
+    ["mariachi-corazoni"] = 1000000000,
+    ["los-67"] = 1000000000,
+    ["los-primos"] = 1000000000,
+    ["los-cucarachas"] = 1000000000,
+    ["to-to-to-sahur"] = 1000000000,
+    ["horegini-boom"] = 1000000000,
+    ["burrito-bandito"] = 1000000000,
+    ["quesadilla-crocodila"] = 1000000000,
+    ["tung-tung-tung-sahur"] = 1000000000,
+    ["pot-hotspot"] = 1000000000,
+    ["los-jobcitos"] = 1000000000,
+    ["graipuss-medussi"] = 1000000000,
+    ["la-cucaracha"] = 1000000000,
+    ["pumpkini-spyderini"] = 1000000000,
+    ["cuadramat-and-pakrahmatmamat"] = 1000000000,
+    ["los-quesadillas"] = 1000000000,
+    ["guerriro-digitale"] = 1000000000,
+    ["los-tipi-tacos"] = 1000000000,
+    ["zombie-tralala"] = 1000000000,
+    ["las-tralaleritas"] = 1000000000,
+    ["los-tralaleritos"] = 1000000000,
+    ["chicleteira-bicicleteira"] = 1000000000,
+    ["job-job-job-sahur"] = 1000000000,
+    ["los-chicleteiras"] = 1000000000,
+    ["los-25"] = 1000000000,
+    ["mieteteira-bicicleteira"] = 1000000000,
+    ["tang-tang-keletang"] = 1000000000,
+    ["money-money-puggy"] = 1000000000,
+    ["los-hotspotsitos"] = 1000000000,
+    ["brunito-marsito"] = 1000000000,
+    ["spinny-hammy"] = 1000000000,
+    ["bacuru-and-egguru"] = 1000000000,
+    ["noo-my-heart"] = 1000000000,
+    ["los-mi-gatitos"] = 1000000000,
+    ["chicleteira-cupideira"] = 1000000000,
+    ["rosetti-tualetti"] = 1000000000,
+    ["dj-panda"] = 1000000000,
+    ["los-sekolahs"] = 1000000000,
+    ["ventoliero-pavonero"] = 500000000,
+    ["baskito"] = 1000000000,
+    ["churrito-bunnito"] = 1000000000,
+    ["esok-sekolah"] = 1000000000,
+}
+
+local TARGET_GEN = 100000000 -- 100 million $/s
+local AutoJoinerEnabled = _G.AutoJoinerEnabled or false
+
+local function calculateServerGen()
+    local total = 0
+    -- Common locations for brainrots in "Steal a Brainrot"
+    -- This scans the entire workspace for objects named after the list entries
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        local val = BrainrotValues[obj.Name] or BrainrotValues[string.lower(obj.Name)]
+        if val then
+            total = total + val
+        end
+    end
+    return total
+end
+
 
 -------------------------------------------------
 -- CLEANUP OLD GUI
@@ -97,6 +178,35 @@ AutoExitButton.Parent = ScreenGui
 Instance.new("UICorner", AutoExitButton).CornerRadius = UDim.new(0, 6)
 Instance.new("UIStroke", AutoExitButton).Color = Color3.fromRGB(40, 90, 200)
 
+-------------------------------------------------
+-- AUTO JOINER BUTTON
+-------------------------------------------------
+local AutoJoinerButton = Instance.new("TextButton")
+AutoJoinerButton.Name = "AutoJoinerButton"
+AutoJoinerButton.Size = UDim2.new(0, 150, 0, 24)
+AutoJoinerButton.Position = UDim2.new(1, -160, 0, 112)
+AutoJoinerButton.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
+AutoJoinerButton.BackgroundTransparency = 0.2
+AutoJoinerButton.BorderSizePixel = 0
+AutoJoinerButton.Text = "🚀 Auto Join: " .. (AutoJoinerEnabled and "ON" or "OFF")
+AutoJoinerButton.TextColor3 = Color3.fromRGB(100, 255, 180)
+AutoJoinerButton.TextSize = 12
+AutoJoinerButton.Font = Enum.Font.GothamBold
+AutoJoinerButton.Parent = ScreenGui
+Instance.new("UICorner", AutoJoinerButton).CornerRadius = UDim.new(0, 6)
+Instance.new("UIStroke", AutoJoinerButton).Color = Color3.fromRGB(40, 200, 90)
+
+local GenLabel = Instance.new("TextLabel")
+GenLabel.Size = UDim2.new(0, 150, 0, 20)
+GenLabel.Position = UDim2.new(1, -160, 0, 138)
+GenLabel.BackgroundTransparency = 1
+GenLabel.Text = "Curr Gen: $0/s"
+GenLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+GenLabel.TextSize = 10
+GenLabel.Font = Enum.Font.GothamBold
+GenLabel.Parent = ScreenGui
+
+
 local autoExitEnabled = false
 AutoExitButton.MouseButton1Click:Connect(function()
     autoExitEnabled = not autoExitEnabled
@@ -179,11 +289,11 @@ if LocalPlayer.Character then
     LocalPlayer.Character.ChildAdded:Connect(checkToolAdded)
 end
 
-local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
+-- Services already declared at top
+
 
 local isHopping = false
-HopButton.MouseButton1Click:Connect(function()
+local function hopToServer()
     if isHopping then return end
     isHopping = true
     HopButton.Text = "⏳ Hopping..."
@@ -193,7 +303,6 @@ HopButton.MouseButton1Click:Connect(function()
         local currentJobId = game.JobId
         
         local function fetchServers()
-            -- excludeFullGames ensures we don't try to join full servers
             local url = "https://games.roblox.com/v1/games/" .. tostring(placeId) .. "/servers/Public?sortOrder=Desc&excludeFullGames=true&limit=100"
             local success, result = pcall(function()
                 return HttpService:JSONDecode(game:HttpGet(url))
@@ -210,7 +319,6 @@ HopButton.MouseButton1Click:Connect(function()
         if serverData and serverData.data then
             for _, v in ipairs(serverData.data) do
                 if type(v) == "table" and v.playing and v.maxPlayers and v.id then
-                    -- Don't join the current server, and make sure there's at least one slot open
                     if v.id ~= currentJobId and v.playing < v.maxPlayers then
                         table.insert(servers, v.id)
                     end
@@ -220,11 +328,23 @@ HopButton.MouseButton1Click:Connect(function()
 
         if #servers > 0 then
             local randomServer = servers[math.random(1, #servers)]
+            
+            local queue_on_teleport = (syn and syn.queue_on_teleport) or queue_on_teleport or (fluxus and fluxus.queue_on_teleport)
+            if queue_on_teleport and AutoJoinerEnabled then
+                _G.AutoJoinerEnabled = true
+                -- persistence logic: attempts to re-run the script upon joining
+                -- NOTE: Replace the string below with your own loader if necessary
+                queue_on_teleport([[
+                    repeat task.wait() until game:IsLoaded()
+                    _G.AutoJoinerEnabled = true
+                    -- Your loader here
+                ]])
+            end
+
             pcall(function()
                 TeleportService:TeleportToPlaceInstance(placeId, randomServer, LocalPlayer)
             end)
             
-            -- If we haven't teleported after 5 seconds, let the user try again
             task.wait(5)
             HopButton.Text = "❌ Teleport Failed"
             task.wait(2)
@@ -237,7 +357,56 @@ HopButton.MouseButton1Click:Connect(function()
             isHopping = false
         end
     end)
+end
+
+HopButton.MouseButton1Click:Connect(hopToServer)
+
+
+-------------------------------------------------
+-- AUTO JOINER LOGIC
+-------------------------------------------------
+local function performServerCheck()
+    local currentGen = calculateServerGen()
+    GenLabel.Text = "Curr Gen: $" .. tostring(math.floor(currentGen/1000000)) .. "M/s"
+    
+    if AutoJoinerEnabled then
+        if currentGen >= TARGET_GEN then
+            AutoJoinerEnabled = false
+            _G.AutoJoinerEnabled = false
+            AutoJoinerButton.Text = "✅ TARGET FOUND"
+            AutoJoinerButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+            
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "💎 Target Found!",
+                Text = "Server Generation: $" .. math.floor(currentGen/1000000) .. "M/s",
+                Duration = 10,
+            })
+        else
+            AutoJoinerButton.Text = "⏳ Searching..."
+            task.wait(2) -- Wait for game to settle
+            hopToServer() -- Call the named function
+        end
+    end
+end
+
+
+AutoJoinerButton.MouseButton1Click:Connect(function()
+    AutoJoinerEnabled = not AutoJoinerEnabled
+    _G.AutoJoinerEnabled = AutoJoinerEnabled
+    AutoJoinerButton.Text = "🚀 Auto Join: " .. (AutoJoinerEnabled and "ON" or "OFF")
+    AutoJoinerButton.TextColor3 = AutoJoinerEnabled and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(100, 255, 180)
+    
+    if AutoJoinerEnabled then
+        performServerCheck()
+    end
 end)
+
+-- Initial check on load
+task.spawn(function()
+    task.wait(3) -- Give the game time to load generators
+    performServerCheck()
+end)
+
 
 -------------------------------------------------
 -- FPS BOOSTER / SMOOTHER LOGIC
