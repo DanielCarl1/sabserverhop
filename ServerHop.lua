@@ -62,6 +62,84 @@ Watermark.Font = Enum.Font.GothamBold
 Watermark.Parent = ScreenGui
 
 -------------------------------------------------
+-- SERVER HOP BUTTON
+-------------------------------------------------
+local HopButton = Instance.new("TextButton")
+HopButton.Name = "ServerHopButton"
+HopButton.Size = UDim2.new(0, 150, 0, 24)
+HopButton.Position = UDim2.new(1, -160, 0, 56)
+HopButton.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
+HopButton.BackgroundTransparency = 0.2
+HopButton.BorderSizePixel = 0
+HopButton.Text = "🌍 Server Hop"
+HopButton.TextColor3 = Color3.fromRGB(100, 180, 255)
+HopButton.TextSize = 12
+HopButton.Font = Enum.Font.GothamBold
+HopButton.Parent = ScreenGui
+Instance.new("UICorner", HopButton).CornerRadius = UDim.new(0, 6)
+Instance.new("UIStroke", HopButton).Color = Color3.fromRGB(40, 90, 200)
+
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+
+local isHopping = false
+HopButton.MouseButton1Click:Connect(function()
+    if isHopping then return end
+    isHopping = true
+    HopButton.Text = "⏳ Hopping..."
+    
+    task.spawn(function()
+        local placeId = game.PlaceId
+        local currentJobId = game.JobId
+        
+        local function fetchServers()
+            -- excludeFullGames ensures we don't try to join full servers
+            local url = "https://games.roblox.com/v1/games/" .. tostring(placeId) .. "/servers/Public?sortOrder=Desc&excludeFullGames=true&limit=100"
+            local success, result = pcall(function()
+                return HttpService:JSONDecode(game:HttpGet(url))
+            end)
+            if success and result and result.data then
+                return result
+            end
+            return nil
+        end
+
+        local serverData = fetchServers()
+        local servers = {}
+        
+        if serverData and serverData.data then
+            for _, v in ipairs(serverData.data) do
+                if type(v) == "table" and v.playing and v.maxPlayers and v.id then
+                    -- Don't join the current server, and make sure there's at least one slot open
+                    if v.id ~= currentJobId and v.playing < v.maxPlayers then
+                        table.insert(servers, v.id)
+                    end
+                end
+            end
+        end
+
+        if #servers > 0 then
+            local randomServer = servers[math.random(1, #servers)]
+            pcall(function()
+                TeleportService:TeleportToPlaceInstance(placeId, randomServer, LocalPlayer)
+            end)
+            
+            -- If we haven't teleported after 5 seconds, let the user try again
+            task.wait(5)
+            HopButton.Text = "❌ Teleport Failed"
+            task.wait(2)
+            HopButton.Text = "🌍 Server Hop"
+            isHopping = false
+        else
+            HopButton.Text = "❌ No Servers Found"
+            task.wait(2)
+            HopButton.Text = "🌍 Server Hop"
+            isHopping = false
+        end
+    end)
+end)
+
+-------------------------------------------------
 -- FPS BOOSTER / SMOOTHER LOGIC
 -------------------------------------------------
 local function OptimizeGame()
