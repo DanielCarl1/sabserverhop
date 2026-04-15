@@ -79,6 +79,105 @@ HopButton.Parent = ScreenGui
 Instance.new("UICorner", HopButton).CornerRadius = UDim.new(0, 6)
 Instance.new("UIStroke", HopButton).Color = Color3.fromRGB(40, 90, 200)
 
+-------------------------------------------------
+-- AUTO EXIT ON BRAINROT
+-------------------------------------------------
+local AutoExitButton = Instance.new("TextButton")
+AutoExitButton.Name = "AutoExitButton"
+AutoExitButton.Size = UDim2.new(0, 150, 0, 24)
+AutoExitButton.Position = UDim2.new(1, -160, 0, 84)
+AutoExitButton.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
+AutoExitButton.BackgroundTransparency = 0.2
+AutoExitButton.BorderSizePixel = 0
+AutoExitButton.Text = "🛑 Auto Exit: OFF"
+AutoExitButton.TextColor3 = Color3.fromRGB(100, 180, 255)
+AutoExitButton.TextSize = 12
+AutoExitButton.Font = Enum.Font.GothamBold
+AutoExitButton.Parent = ScreenGui
+Instance.new("UICorner", AutoExitButton).CornerRadius = UDim.new(0, 6)
+Instance.new("UIStroke", AutoExitButton).Color = Color3.fromRGB(40, 90, 200)
+
+local autoExitEnabled = false
+AutoExitButton.MouseButton1Click:Connect(function()
+    autoExitEnabled = not autoExitEnabled
+    AutoExitButton.Text = "🛑 Auto Exit: " .. (autoExitEnabled and "ON" or "OFF")
+end)
+
+local function triggerAutoExit()
+    if not autoExitEnabled then return end
+    
+    -- Blue UI Message
+    local ExitGui = Instance.new("ScreenGui")
+    ExitGui.Name = "AutoExitMessage"
+    ExitGui.IgnoreGuiInset = true
+    pcall(function() ExitGui.Parent = CoreGui end)
+    if not ExitGui.Parent then ExitGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+    
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, 0, 1, 0)
+    Frame.BackgroundColor3 = Color3.fromRGB(0, 85, 255)
+    Frame.BorderSizePixel = 0
+    Frame.Parent = ExitGui
+    
+    local Text = Instance.new("TextLabel")
+    Text.Size = UDim2.new(1, 0, 1, 0)
+    Text.BackgroundTransparency = 1
+    Text.Text = "PALDO KA NA NAMAN"
+    Text.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Text.TextSize = 60
+    Text.Font = Enum.Font.GothamBlack
+    Text.Parent = Frame
+    
+    task.wait(1.5)
+    LocalPlayer:Kick("PALDO KA NA NAMAN")
+end
+
+-- Detect Leaderstats Increase (when you successfully steal/deposit it)
+task.spawn(function()
+    local leaderstats = LocalPlayer:WaitForChild("leaderstats", 10)
+    if leaderstats then
+        for _, stat in ipairs(leaderstats:GetChildren()) do
+            if stat:IsA("IntValue") or stat:IsA("NumberValue") then
+                local lastValue = stat.Value
+                stat.Changed:Connect(function(newValue)
+                    if newValue > lastValue then
+                        triggerAutoExit()
+                    end
+                    lastValue = newValue
+                end)
+            end
+        end
+        leaderstats.ChildAdded:Connect(function(stat)
+            if stat:IsA("IntValue") or stat:IsA("NumberValue") then
+                local lastValue = stat.Value
+                stat.Changed:Connect(function(newValue)
+                    if newValue > lastValue then
+                        triggerAutoExit()
+                    end
+                    lastValue = newValue
+                end)
+            end
+        end)
+    end
+end)
+
+-- Detect obtaining a Brainrot tool (When you pick it up)
+local function checkToolAdded(child)
+    if child:IsA("Tool") then
+        local name = string.lower(child.Name)
+        if name:find("brainrot") or name:find("skibidi") or name:find("gyatt") or name:find("sigma") or name:find("mewing") or name:find("rizz") then
+            triggerAutoExit()
+        end
+    end
+end
+LocalPlayer.Backpack.ChildAdded:Connect(checkToolAdded)
+LocalPlayer.CharacterAdded:Connect(function(char)
+    char.ChildAdded:Connect(checkToolAdded)
+end)
+if LocalPlayer.Character then
+    LocalPlayer.Character.ChildAdded:Connect(checkToolAdded)
+end
+
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 
