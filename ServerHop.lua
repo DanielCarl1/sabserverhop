@@ -83,16 +83,28 @@ local AutoJoinerEnabled = _G.AutoJoinerEnabled or false
 
 local function calculateServerGen()
     local total = 0
-    -- Common locations for brainrots in "Steal a Brainrot"
-    -- This scans the entire workspace for objects named after the list entries
+    local rareFound = false
+    local rareList = {
+        ["garama-and-madundung"] = true,
+        ["tictac-sahur"] = true,
+        ["burguro-and-fryuro"] = true
+    }
+
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        local val = BrainrotValues[obj.Name] or BrainrotValues[string.lower(obj.Name)]
+        local name = string.lower(obj.Name)
+        local val = BrainrotValues[obj.Name] or BrainrotValues[name]
+        
         if val then
             total = total + val
         end
+        
+        if rareList[name] or rareList[obj.Name] then
+            rareFound = obj.Name
+        end
     end
-    return total
+    return total, rareFound
 end
+
 
 
 -------------------------------------------------
@@ -332,12 +344,15 @@ local function hopToServer()
             local queue_on_teleport = (syn and syn.queue_on_teleport) or queue_on_teleport or (fluxus and fluxus.queue_on_teleport)
             if queue_on_teleport and AutoJoinerEnabled then
                 _G.AutoJoinerEnabled = true
-                -- persistence logic: attempts to re-run the script upon joining
-                -- NOTE: Replace the string below with your own loader if necessary
                 queue_on_teleport([[
                     repeat task.wait() until game:IsLoaded()
                     _G.AutoJoinerEnabled = true
-                    -- Your loader here
+                    -- Auto-execute logic
+                    pcall(function()
+                        if isfile and isfile("ServerHop.lua") then
+                            loadstring(readfile("ServerHop.lua"))()
+                        end
+                    end)
                 ]])
             end
 
@@ -345,19 +360,30 @@ local function hopToServer()
                 TeleportService:TeleportToPlaceInstance(placeId, randomServer, LocalPlayer)
             end)
             
-            task.wait(5)
-            HopButton.Text = "❌ Teleport Failed"
-            task.wait(2)
-            HopButton.Text = "🌍 Server Hop"
-            isHopping = false
+            task.wait(8) -- Increased wait time
+            if AutoJoinerEnabled then
+                HopButton.Text = "⏳ Retrying Hop..."
+                task.wait(2)
+                isHopping = false
+                hopToServer() -- Retry if teleport didn't happen
+            else
+                HopButton.Text = "🌍 Server Hop"
+                isHopping = false
+            end
         else
             HopButton.Text = "❌ No Servers Found"
-            task.wait(2)
-            HopButton.Text = "🌍 Server Hop"
-            isHopping = false
+            task.wait(10) -- Wait longer before retrying to let servers refresh
+            if AutoJoinerEnabled then
+                isHopping = false
+                hopToServer()
+            else
+                HopButton.Text = "🌍 Server Hop"
+                isHopping = false
+            end
         end
     end)
 end
+
 
 HopButton.MouseButton1Click:Connect(hopToServer)
 
@@ -366,28 +392,40 @@ HopButton.MouseButton1Click:Connect(hopToServer)
 -- AUTO JOINER LOGIC
 -------------------------------------------------
 local function performServerCheck()
-    local currentGen = calculateServerGen()
+    local currentGen, rareItem = calculateServerGen()
     GenLabel.Text = "Curr Gen: $" .. tostring(math.floor(currentGen/1000000)) .. "M/s"
     
     if AutoJoinerEnabled then
-        if currentGen >= TARGET_GEN then
+        if rareItem then
+            AutoJoinerEnabled = false
+            _G.AutoJoinerEnabled = false
+            AutoJoinerButton.Text = "💎 RARE: " .. string.upper(rareItem)
+            AutoJoinerButton.TextColor3 = Color3.fromRGB(255, 215, 0)
+            
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "💎 RARE ITEM FOUND!",
+                Text = "Found: " .. rareItem,
+                Duration = 15,
+            })
+        elseif currentGen >= TARGET_GEN then
             AutoJoinerEnabled = false
             _G.AutoJoinerEnabled = false
             AutoJoinerButton.Text = "✅ TARGET FOUND"
             AutoJoinerButton.TextColor3 = Color3.fromRGB(0, 255, 0)
             
             game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "💎 Target Found!",
+                Title = "💎 Target Reached!",
                 Text = "Server Generation: $" .. math.floor(currentGen/1000000) .. "M/s",
                 Duration = 10,
             })
         else
             AutoJoinerButton.Text = "⏳ Searching..."
-            task.wait(2) -- Wait for game to settle
-            hopToServer() -- Call the named function
+            task.wait(2)
+            hopToServer()
         end
     end
 end
+
 
 
 AutoJoinerButton.MouseButton1Click:Connect(function()
@@ -403,9 +441,23 @@ end)
 
 -- Initial check on load
 task.spawn(function()
-    task.wait(3) -- Give the game time to load generators
+    task.wait(5) -- Increased wait
     performServerCheck()
 end)
+
+-- Watchdog to prevent hanging
+task.spawn(function()
+    while true do
+        task.wait(30)
+        if AutoJoinerEnabled and not isHopping then
+            local currentGen, rareItem = calculateServerGen()
+            if not rareItem and currentGen < TARGET_GEN then
+                performServerCheck()
+            end
+        end
+    end
+end)
+
 
 
 -------------------------------------------------
